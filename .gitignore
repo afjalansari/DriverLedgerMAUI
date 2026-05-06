@@ -1,0 +1,13 @@
+﻿# Build folders
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Android signing secrets
+signing.props
+*.jks
+*.keystore

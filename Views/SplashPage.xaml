@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.SplashPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#0D1B2A">
+
+    <Grid RowDefinitions="*,Auto,*">
+
+        <!-- Centre block -->
+        <VerticalStackLayout Grid.Row="1"
+                             Spacing="20"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center"
+                             Padding="40,0">
+
+            <!-- Logo -->
+            <Label Text="🚖"
+                   FontSize="72"
+                   HorizontalOptions="Center"/>
+
+            <!-- App name -->
+            <Label HorizontalOptions="Center">
+                <Label.FormattedText>
+                    <FormattedString>
+                        <Span Text="Driver" TextColor="White"   FontSize="38" FontAttributes="Bold"/>
+                        <Span Text="Ledger" TextColor="#2979FF" FontSize="38" FontAttributes="Bold"/>
+                    </FormattedString>
+                </Label.FormattedText>
+            </Label>
+
+            <!-- Tagline -->
+            <Label Text="Fleet Accounting Made Easy"
+                   FontSize="14"
+                   TextColor="#90A4AE"
+                   HorizontalOptions="Center"/>
+
+            <!-- Loading indicator -->
+            <ActivityIndicator IsRunning="True"
+                               Color="#2979FF"
+                               HorizontalOptions="Center"
+                               Margin="0,16,0,0"/>
+
+            <Label Text="Loading…"
+                   FontSize="12"
+                   TextColor="#90A4AE"
+                   HorizontalOptions="Center"/>
+
+        </VerticalStackLayout>
+
+        <!-- Footer version -->
+        <Label Grid.Row="2"
+               Text="DriverLedger v1.0"
+               FontSize="11"
+               TextColor="#37474F"
+               HorizontalOptions="Center"
+               VerticalOptions="End"
+               Margin="0,0,0,28"/>
+
+    </Grid>
+
+</ContentPage>

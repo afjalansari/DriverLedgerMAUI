@@ -1,0 +1,522 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.SettlementEntryPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:DriverLedger.ViewModels"
+             BackgroundColor="#0D1B2A"
+             Shell.NavBarIsVisible="False">
+
+    <!--
+    ╔══════════════════════════════════════════════════════════════════╗
+    ║  SETTLEMENT ENTRY — Dynamic Operator Rows                       ║
+    ║  Section 2 uses BindableLayout over OperatorRows collection.    ║
+    ║  Each row = Picker (operator name) + Bill Entry + Cash Entry    ║
+    ║            + ✕ remove button.                                   ║
+    ║  "+ Add Operator" button appends a new AggregatorRowViewModel.  ║
+    ╚══════════════════════════════════════════════════════════════════╝
+    -->
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+        <Grid Grid.Row="0" Padding="16,48,20,14" ColumnDefinitions="Auto,*">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#0D47A1" Offset="0"/>
+                    <GradientStop Color="#0A3D91" Offset="1"/>
+                </LinearGradientBrush>
+            </Grid.Background>
+
+            <Border Grid.Column="0" BackgroundColor="Transparent"
+                    StrokeShape="RoundRectangle 8" Stroke="Transparent" Padding="4,6">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding CancelCommand}"/>
+                </Border.GestureRecognizers>
+                <Label Text="‹  Back" TextColor="#90CAF9" FontSize="15" VerticalOptions="Center"/>
+            </Border>
+
+            <VerticalStackLayout Grid.Column="1" HorizontalOptions="Center"
+                                 Spacing="1" Margin="-48,0,0,0">
+                <Label Text="{Binding Title}" TextColor="White" FontSize="17"
+                       FontAttributes="Bold" HorizontalOptions="Center"/>
+                <Label Text="{Binding Date, StringFormat='{0:ddd, dd MMM yyyy}'}"
+                       TextColor="#BBDEFB" FontSize="11" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- ══ SCROLL ══════════════════════════════════════════════════════ -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="0" Padding="0,0,0,16">
+
+                <!-- ① BASIC INFO ─────────────────────────────────────────── -->
+                <Border Margin="12,12,12,6" BackgroundColor="#0F1E2F"
+                        StrokeShape="RoundRectangle 16" Stroke="#1E3A5F" Padding="14">
+                    <VerticalStackLayout Spacing="10">
+
+                        <HorizontalStackLayout Spacing="8" Margin="0,0,0,2">
+                            <Label Text="①" TextColor="#2979FF" FontSize="15"
+                                   FontAttributes="Bold" VerticalOptions="Center"/>
+                            <Label Text="Basic Info" TextColor="White" FontSize="14"
+                                   FontAttributes="Bold" VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+
+                        <!-- Date + Shift -->
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                <Label Text="Date" TextColor="#90CAF9" FontSize="11"/>
+                                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10"
+                                        Stroke="#1E3A5F" Padding="10,0">
+                                    <DatePicker Date="{Binding Date}" TextColor="White"
+                                                BackgroundColor="Transparent" HeightRequest="44"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="Shift" TextColor="#90CAF9" FontSize="11"/>
+                                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10"
+                                        Stroke="#1E3A5F" Padding="10,0">
+                                    <Picker SelectedItem="{Binding SelectedShift}"
+                                            ItemsSource="{Binding ShiftOptions}"
+                                            TextColor="White" BackgroundColor="Transparent"
+                                            HeightRequest="44"/>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <!-- Vehicle -->
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Vehicle" TextColor="#90CAF9" FontSize="11"/>
+                            <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10"
+                                    Stroke="#1E3A5F" Padding="10,0">
+                                <Picker SelectedItem="{Binding SelectedVehicle}"
+                                        ItemsSource="{Binding Vehicles}"
+                                        ItemDisplayBinding="{Binding VehicleNumber}"
+                                        TextColor="White" BackgroundColor="Transparent"
+                                        HeightRequest="44" Title="Choose vehicle..."
+                                        TitleColor="#4A6FA5"/>
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Driver chip + Contract pill -->
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Border Grid.Column="0" BackgroundColor="#0D2137"
+                                    StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="12,8">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="🧑‍✈️" FontSize="15" VerticalOptions="Center"/>
+                                    <Label Text="{Binding AssignedDriverName}"
+                                           TextColor="#90CAF9" FontSize="13"
+                                           VerticalOptions="Center" LineBreakMode="TailTruncation"/>
+                                </HorizontalStackLayout>
+                            </Border>
+
+                            <Border Grid.Column="1" BackgroundColor="#0D2A5A"
+                                    StrokeShape="RoundRectangle 10" Stroke="#2979FF" Padding="10,8">
+                                <VerticalStackLayout Spacing="2">
+                                    <HorizontalStackLayout Spacing="4">
+                                        <Label Text="📊" FontSize="10"/>
+                                        <Label Text="{Binding ContractSummary}"
+                                               TextColor="#42A5F5" FontSize="11" FontAttributes="Bold"/>
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Spacing="4">
+                                        <Label Text="⛽" FontSize="10"/>
+                                        <Label Text="{Binding FuelSplitSummary}"
+                                               TextColor="#64B5F6" FontSize="10"/>
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ② TRIP INCOME — DYNAMIC ROWS ────────────────────────── -->
+                <Border Margin="12,6" BackgroundColor="#0F1E2F"
+                        StrokeShape="RoundRectangle 16" Stroke="#1E3A5F" Padding="14">
+                    <VerticalStackLayout Spacing="10">
+
+                        <!-- Section header -->
+                        <HorizontalStackLayout Spacing="8" Margin="0,0,0,2">
+                            <Label Text="②" TextColor="#2979FF" FontSize="15"
+                                   FontAttributes="Bold" VerticalOptions="Center"/>
+                            <Label Text="Trip Income" TextColor="White" FontSize="14"
+                                   FontAttributes="Bold" VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+
+                        <!-- Column label row -->
+                        <Grid ColumnDefinitions="*,80,80,32" ColumnSpacing="6">
+                            <Label Grid.Column="0" Text="Operator"
+                                   TextColor="#4A6FA5" FontSize="11" FontAttributes="Bold"/>
+                            <Label Grid.Column="1" Text="Bill  ₹"
+                                   TextColor="#4A6FA5" FontSize="11" FontAttributes="Bold"
+                                   HorizontalOptions="Center"/>
+                            <Label Grid.Column="2" Text="Cash  ₹"
+                                   TextColor="#4A6FA5" FontSize="11" FontAttributes="Bold"
+                                   HorizontalOptions="Center"/>
+                            <!-- empty header for remove column -->
+                        </Grid>
+
+                        <BoxView HeightRequest="1" BackgroundColor="#1E3A5F" Opacity="0.6"/>
+
+                        <!-- ── DYNAMIC ROWS via BindableLayout ──────────── -->
+                        <!--
+                            Each item is an AggregatorRowViewModel.
+                            The DataTemplate binds directly to that item's properties.
+                            RemoveCommand is on the row VM itself, so binding is clean.
+                        -->
+                        <VerticalStackLayout
+                            BindableLayout.ItemsSource="{Binding OperatorRows}"
+                            Spacing="8">
+
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="vm:AggregatorRowViewModel">
+                                    <Grid ColumnDefinitions="*,80,80,32" ColumnSpacing="6"
+                                          RowDefinitions="Auto" VerticalOptions="Center">
+
+                                        <!-- Operator name Picker -->
+                                        <Border Grid.Column="0" BackgroundColor="#162032"
+                                                StrokeShape="RoundRectangle 8" Stroke="#1E3A5F"
+                                                Padding="6,0">
+                                            <Picker SelectedItem="{Binding OperatorName}"
+                                                    ItemsSource="{Binding OperatorOptions}"
+                                                    TextColor="White" BackgroundColor="Transparent"
+                                                    HeightRequest="42" FontSize="13"
+                                                    FontAttributes="Bold"/>
+                                        </Border>
+
+                                        <!-- Bill Entry -->
+                                        <Border Grid.Column="1" BackgroundColor="#162032"
+                                                StrokeShape="RoundRectangle 8" Stroke="#2979FF"
+                                                Padding="6,0">
+                                            <Entry Text="{Binding BillText}"
+                                                   Keyboard="Numeric" Placeholder="0"
+                                                   PlaceholderColor="#2D4A6A"
+                                                   TextColor="#FFA726"
+                                                   BackgroundColor="Transparent"
+                                                   HeightRequest="42" FontAttributes="Bold"
+                                                   HorizontalTextAlignment="End"/>
+                                        </Border>
+
+                                        <!-- Cash Entry -->
+                                        <Border Grid.Column="2" BackgroundColor="#162032"
+                                                StrokeShape="RoundRectangle 8" Stroke="#1E3A5F"
+                                                Padding="6,0">
+                                            <Entry Text="{Binding CashText}"
+                                                   Keyboard="Numeric" Placeholder="0"
+                                                   PlaceholderColor="#2D4A6A"
+                                                   TextColor="#4CAF50"
+                                                   BackgroundColor="Transparent"
+                                                   HeightRequest="42"
+                                                   HorizontalTextAlignment="End"/>
+                                        </Border>
+
+                                        <!-- Remove button -->
+                                        <Border Grid.Column="3"
+                                                BackgroundColor="#1A0D0D"
+                                                StrokeShape="RoundRectangle 8"
+                                                Stroke="#3A1515" Padding="0"
+                                                WidthRequest="32" HeightRequest="42">
+                                            <Border.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding RemoveCommand}"/>
+                                            </Border.GestureRecognizers>
+                                            <Label Text="✕" TextColor="#EF5350" FontSize="14"
+                                                   FontAttributes="Bold"
+                                                   HorizontalOptions="Center"
+                                                   VerticalOptions="Center"/>
+                                        </Border>
+
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+
+                        <!-- ── ADD OPERATOR BUTTON ──────────────────────── -->
+                        <Border BackgroundColor="#0A2030" StrokeShape="RoundRectangle 10"
+                                Stroke="#1E3A5F" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding AddOperatorRowCommand}"/>
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto,*" Padding="14,11" ColumnSpacing="10">
+                                <Label Grid.Column="0" Text="＋" TextColor="#2979FF"
+                                       FontSize="18" FontAttributes="Bold"
+                                       VerticalOptions="Center"/>
+                                <Label Grid.Column="1" Text="Add Operator"
+                                       TextColor="#64B5F6" FontSize="13"
+                                       VerticalOptions="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <BoxView HeightRequest="1" BackgroundColor="#1E3A5F"/>
+
+                        <!-- Totals row -->
+                        <Grid ColumnDefinitions="*,80,80,32" ColumnSpacing="6">
+                            <Label Grid.Column="0" Text="Total" TextColor="#90CAF9"
+                                   FontSize="12" FontAttributes="Bold" VerticalOptions="Center"/>
+                            <Border Grid.Column="1" BackgroundColor="#0D2A5A"
+                                    StrokeShape="RoundRectangle 8" Stroke="#2979FF" Padding="6,10">
+                                <Label Text="{Binding TotalOperatorBill, StringFormat='₹{0:N0}'}"
+                                       TextColor="#FFA726" FontSize="13" FontAttributes="Bold"
+                                       HorizontalOptions="End"/>
+                            </Border>
+                            <Border Grid.Column="2" BackgroundColor="#0A2F1A"
+                                    StrokeShape="RoundRectangle 8" Stroke="#2E7D32" Padding="6,10">
+                                <Label Text="{Binding TotalCashCollected, StringFormat='₹{0:N0}'}"
+                                       TextColor="#4CAF50" FontSize="13" FontAttributes="Bold"
+                                       HorizontalOptions="End"/>
+                            </Border>
+                        </Grid>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ③ FUEL & CHALLANS — FIXED -->
+                <Border Margin="12,0,12,6" BackgroundColor="#0F1E2F"
+        StrokeShape="RoundRectangle 16" Stroke="#1E3A5F" Padding="14">
+                    <VerticalStackLayout Spacing="12">
+
+                        <HorizontalStackLayout Spacing="8">
+                            <Label Text="③" TextColor="#2979FF" FontSize="15"
+                   FontAttributes="Bold"/>
+                            <Label Text="Fuel &amp; Challans" TextColor="White"
+                   FontSize="14" FontAttributes="Bold"/>
+                        </HorizontalStackLayout>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+
+                            <!-- ✅ CNG FIX -->
+                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                <Label Text="⛽ CNG / Fuel" TextColor="#FF7043" FontSize="12"/>
+                                <Border BackgroundColor="#162032" Stroke="#FF7043"
+                        StrokeShape="RoundRectangle 10" Padding="10,0">
+                                    <Entry Text="{Binding CngText, Mode=TwoWay}"
+                           Keyboard="Numeric"
+                           Placeholder="0"
+                           TextColor="#FF7043"
+                           BackgroundColor="Transparent"
+                           HeightRequest="48"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <!-- ✅ DRIVER CHALLAN FIX -->
+                            <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="🚦 Driver Challan" TextColor="#FF5252" FontSize="12"/>
+                                <Border BackgroundColor="#162032" Stroke="#FF5252"
+                        StrokeShape="RoundRectangle 10" Padding="10,0">
+                                    <Entry Text="{Binding DriverChallanText, Mode=TwoWay}"
+                           Keyboard="Numeric"
+                           Placeholder="0"
+                           TextColor="#FF5252"
+                           BackgroundColor="Transparent"
+                           HeightRequest="48"/>
+                                </Border>
+                            </VerticalStackLayout>
+
+                        </Grid>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ④ OWNER EXPENSES — EXPANDABLE -->
+                <Border Margin="12,0,12,6" BackgroundColor="#0F1E2F"
+                        StrokeShape="RoundRectangle 16" Stroke="#1E3A5F" Padding="14">
+
+                    <VerticalStackLayout Spacing="6">
+
+                        <!-- Clickable Header to Toggle -->
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ToggleExpensesCommand}"/>
+                            </Grid.GestureRecognizers>
+                            <HorizontalStackLayout Grid.Column="0" Spacing="8">
+                                <Label Text="④" TextColor="#2979FF" FontSize="15" FontAttributes="Bold"/>
+                                <Label Text="Owner Expenses" TextColor="White"
+                                       FontSize="14" FontAttributes="Bold"/>
+                            </HorizontalStackLayout>
+                            <Label Grid.Column="1"
+                                   TextColor="#90CAF9" FontSize="18" VerticalOptions="Center">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding IsExpensesExpanded}" Value="True">
+                                        <Setter Property="Text" Value="∧"/>
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Label" Binding="{Binding IsExpensesExpanded}" Value="False">
+                                        <Setter Property="Text" Value="∨"/>
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                        </Grid>
+
+                        <!-- Expandable Content -->
+                        <VerticalStackLayout Spacing="12" IsVisible="{Binding IsExpensesExpanded}">
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto"
+                                  ColumnSpacing="10" RowSpacing="10">
+
+                                <!-- Parking -->
+                                <Entry Grid.Row="0" Grid.Column="0"
+                                       Text="{Binding ParkingText, Mode=TwoWay}"
+                                       Keyboard="Numeric" Placeholder="Parking"/>
+
+                                <!-- Toll -->
+                                <Entry Grid.Row="0" Grid.Column="1"
+                                       Text="{Binding TollText, Mode=TwoWay}"
+                                       Keyboard="Numeric" Placeholder="Toll"/>
+
+                                <!-- Repair -->
+                                <Entry Grid.Row="1" Grid.Column="0"
+                                       Text="{Binding RepairText, Mode=TwoWay}"
+                                       Keyboard="Numeric" Placeholder="Repair"/>
+
+                                <!-- ✅ MISC -->
+                                <Entry Grid.Row="1" Grid.Column="1"
+                                       Text="{Binding MiscText, Mode=TwoWay}"
+                                       Keyboard="Numeric" Placeholder="Misc"/>
+
+                            </Grid>
+
+                            <!-- ✅ OWNER CHALLAN -->
+                            <Entry Text="{Binding OwnerChallanText, Mode=TwoWay}"
+                                   Keyboard="Numeric"
+                                   Placeholder="Owner Challan"/>
+                        </VerticalStackLayout>
+
+                    </VerticalStackLayout>
+
+                </Border>
+
+                <BoxView HeightRequest="8" BackgroundColor="Transparent"/>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- ══ STICKY SETTLEMENT RESULT CARD ══════════════════════════════ -->
+        <Border Grid.Row="2" Margin="0" Padding="0"
+                StrokeShape="RoundRectangle 0" Stroke="Transparent">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#0D2A5A" Offset="0"/>
+                    <GradientStop Color="#091B3A" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+
+            <VerticalStackLayout Spacing="0">
+                <BoxView HeightRequest="2" BackgroundColor="#2979FF" HorizontalOptions="Fill"/>
+
+                <VerticalStackLayout Spacing="10" Padding="16,12,16,30">
+
+                    <HorizontalStackLayout Spacing="8">
+                        <Label Text="⑤" TextColor="#2979FF" FontSize="13"
+                               FontAttributes="Bold" VerticalOptions="Center"/>
+                        <Label Text="Settlement Result" TextColor="White"
+                               FontSize="13" FontAttributes="Bold" VerticalOptions="Center"/>
+                        <Label Text="• live" TextColor="#4CAF50" FontSize="10"
+                               VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+
+                    <Grid ColumnDefinitions="*,1,*" ColumnSpacing="12">
+
+                        <!-- LEFT: Driver breakdown -->
+                        <VerticalStackLayout Grid.Column="0" Spacing="6">
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0" Text="Driver income"
+                                       TextColor="#90CAF9" FontSize="11" VerticalOptions="Center"/>
+                                <Label Grid.Column="1"
+                                       Text="{Binding DriverIncomeShare, StringFormat='₹{0:N0}'}"
+                                       TextColor="#4CAF50" FontSize="12" FontAttributes="Bold"/>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0" Text="− Fuel share"
+                                       TextColor="#90CAF9" FontSize="11" VerticalOptions="Center"/>
+                                <Label Grid.Column="1"
+                                       Text="{Binding DriverCngShare, StringFormat='₹{0:N0}'}"
+                                       TextColor="#FF7043" FontSize="12"/>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0" Text="− Challan"
+                                       TextColor="#90CAF9" FontSize="11" VerticalOptions="Center"/>
+                                <Label Grid.Column="1"
+                                       Text="{Binding DriverFaultChallan, StringFormat='₹{0:N0}'}"
+                                       TextColor="#FF5252" FontSize="12"/>
+                            </Grid>
+
+                            <BoxView HeightRequest="1" BackgroundColor="#2979FF" Opacity="0.4"/>
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0" Text="💰 Net Haq"
+                                       TextColor="White" FontSize="13"
+                                       FontAttributes="Bold" VerticalOptions="Center"/>
+                                <Label Grid.Column="1"
+                                       Text="{Binding DriverNetHaq, StringFormat='₹{0:N0}'}"
+                                       TextColor="#FFA726" FontSize="16" FontAttributes="Bold"/>
+                            </Grid>
+
+                        </VerticalStackLayout>
+
+                        <!-- Divider -->
+                        <BoxView Grid.Column="1" BackgroundColor="#1E3A5F"
+                                 WidthRequest="1" VerticalOptions="Fill"/>
+
+                        <!-- RIGHT: Cash + Direction -->
+                        <VerticalStackLayout Grid.Column="2" Spacing="6" Margin="4,0,0,0">
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0" Text="Cash collected"
+                                       TextColor="#90CAF9" FontSize="11" VerticalOptions="Center"/>
+                                <Label Grid.Column="1"
+                                       Text="{Binding TotalCashCollected, StringFormat='₹{0:N0}'}"
+                                       TextColor="#90CAF9" FontSize="12"/>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0" Text="Cash w/ driver"
+                                       TextColor="#90CAF9" FontSize="11" VerticalOptions="Center"/>
+                                <Label Grid.Column="1"
+                                       Text="{Binding CashWithDriver, StringFormat='₹{0:N0}'}"
+                                       TextColor="#90CAF9" FontSize="12" FontAttributes="Bold"/>
+                            </Grid>
+
+                            <BoxView HeightRequest="1" BackgroundColor="#2979FF" Opacity="0.4"/>
+
+                            <Border BackgroundColor="#1565C0" StrokeShape="RoundRectangle 8"
+                                    Stroke="#2979FF" Padding="8,7">
+                                <Label Text="{Binding SettlementLabel}"
+                                       TextColor="White" FontSize="11" FontAttributes="Bold"
+                                       HorizontalOptions="Center"
+                                       HorizontalTextAlignment="Center"/>
+                            </Border>
+
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <!-- Save button -->
+                    <Border StrokeShape="RoundRectangle 12" Stroke="#2979FF" Padding="0">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#1565C0" Offset="0"/>
+                                <GradientStop Color="#1976D2" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding SaveCommand}"/>
+                        </Border.GestureRecognizers>
+
+                        <Grid ColumnDefinitions="*,Auto,Auto" Padding="18,14">
+                            <Label Grid.Column="0" Text="Save Settlement"
+                                   TextColor="White" FontSize="15" FontAttributes="Bold"
+                                   VerticalOptions="Center"/>
+                            <ActivityIndicator Grid.Column="1"
+                                               IsRunning="{Binding IsBusy}"
+                                               IsVisible="{Binding IsBusy}"
+                                               Color="White" HeightRequest="20" WidthRequest="20"
+                                               VerticalOptions="Center" Margin="0,0,4,0"/>
+                            <Label Grid.Column="2" Text="💾" FontSize="20"
+                                   VerticalOptions="Center"
+                                   IsVisible="{Binding IsNotBusy}"/>
+                        </Grid>
+                    </Border>
+
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </Border>
+
+    </Grid>
+</ContentPage>

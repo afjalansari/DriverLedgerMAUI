@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.DriverLedgerDetailPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DriverLedger.ViewModels"
+    x:DataType="vm:DriverLedgerDetailViewModel"
+    BackgroundColor="#080C18" Shell.NavBarIsVisible="False">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <Color x:Key="BgPage">#080C18</Color>
+            <Color x:Key="BgCard">#0D1426</Color>
+            <Color x:Key="BorderCard">#161F30</Color>
+            <Color x:Key="BorderBlue">#1A3560</Color>
+            <Color x:Key="Green">#4CAF50</Color>
+            <Color x:Key="Red">#EF5350</Color>
+            <Color x:Key="Blue">#4A90D9</Color>
+            <Color x:Key="Orange">#FFA726</Color>
+            <Color x:Key="Muted">#566A7F</Color>
+            <Color x:Key="Dim">#3A5570</Color>
+            <Color x:Key="White">#FFFFFF</Color>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
+
+        <!-- ═══════════════════════════════════════
+             HEADER — Driver Info
+        ═══════════════════════════════════════ -->
+        <Grid Grid.Row="0" Padding="20,50,20,18">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#0D2040" Offset="0"/>
+                    <GradientStop Color="#080C18" Offset="1"/>
+                </LinearGradientBrush>
+            </Grid.Background>
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <Label Grid.Column="0" Text="‹" FontSize="28" TextColor="{StaticResource White}" VerticalOptions="Center" Margin="0,0,12,0">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding BackCommand}"/>
+                    </Label.GestureRecognizers>
+                </Label>
+                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                    <Label Text="{Binding DriverName}" TextColor="{StaticResource White}" FontSize="20" FontAttributes="Bold"/>
+                    <Label Text="{Binding MobileNumber}" TextColor="{StaticResource Muted}" FontSize="13"/>
+                </VerticalStackLayout>
+                <Label Grid.Column="2" Text="{Binding EntryCountLabel}" FontSize="10" TextColor="{StaticResource Muted}" VerticalOptions="Center"/>
+            </Grid>
+        </Grid>
+
+        <!-- ═══════════════════════════════════════
+             SUMMARY CARD — NET SETTLEMENT
+        ═══════════════════════════════════════ -->
+        <Border Grid.Row="1" StrokeShape="RoundRectangle 20" StrokeThickness="1.5" Margin="14,0,14,0" Padding="0">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#0A1830" Offset="0"/>
+                    <GradientStop Color="#0D1426" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Border.Stroke>
+                <SolidColorBrush Color="#1A3560"/>
+            </Border.Stroke>
+
+            <VerticalStackLayout Spacing="0" Padding="20,18">
+
+                <!-- Top row: Advance Given + Payment Received -->
+                <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="12" Margin="0,0,0,14">
+                    <VerticalStackLayout Grid.Column="0" Spacing="3" HorizontalOptions="Center">
+                        <Label Text="ADVANCE GIVEN" TextColor="{StaticResource Muted}" FontSize="9" FontAttributes="Bold" HorizontalOptions="Center"/>
+                        <Label Text="Advance Diya" TextColor="{StaticResource Dim}" FontSize="8" HorizontalOptions="Center"/>
+                        <Label Text="{Binding TotalDebit, StringFormat='₹{0:N0}'}" TextColor="{StaticResource Orange}" FontSize="17" FontAttributes="Bold" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+
+                    <BoxView Grid.Column="1" WidthRequest="1" BackgroundColor="#1E2A3F" VerticalOptions="Fill"/>
+
+                    <VerticalStackLayout Grid.Column="2" Spacing="3" HorizontalOptions="Center">
+                        <Label Text="PAYMENT RECEIVED" TextColor="{StaticResource Muted}" FontSize="9" FontAttributes="Bold" HorizontalOptions="Center"/>
+                        <Label Text="Wapas Mila" TextColor="{StaticResource Dim}" FontSize="8" HorizontalOptions="Center"/>
+                        <Label Text="{Binding TotalCredit, StringFormat='₹{0:N0}'}" TextColor="{StaticResource Green}" FontSize="17" FontAttributes="Bold" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Grid>
+
+                <!-- Divider line -->
+                <BoxView HeightRequest="1" BackgroundColor="#1A3560" Margin="0,0,0,14"/>
+
+                <!-- NET SETTLEMENT — THE BIG NUMBER -->
+                <Label Text="NET SETTLEMENT" TextColor="{StaticResource Muted}" FontSize="10" FontAttributes="Bold" HorizontalOptions="Center" Margin="0,0,0,4"/>
+                <Label Text="{Binding NetSettlementDisplay}" TextColor="{Binding BalanceColor}" FontSize="36" FontAttributes="Bold" HorizontalOptions="Center"/>
+
+                <!-- Hindi interpretation — PRIMARY -->
+                <Border BackgroundColor="#0A0E1A" StrokeShape="RoundRectangle 10" Padding="14,8" Margin="0,8,0,0" HorizontalOptions="Center">
+                    <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                        <Label Text="{Binding BalanceInterpretation}" TextColor="{Binding BalanceColor}" FontSize="14" FontAttributes="Bold" HorizontalOptions="Center" HorizontalTextAlignment="Center"/>
+                        <Label Text="{Binding BalanceInterpretationEnglish}" TextColor="{StaticResource Dim}" FontSize="10" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- ═══════════════════════════════════════
+             COLUMN HEADERS
+        ═══════════════════════════════════════ -->
+        <Border Grid.Row="2" BackgroundColor="#0A1020" StrokeShape="RoundRectangle 10" Stroke="#161F30" Margin="14,12,14,0" Padding="12,10">
+            <Grid ColumnDefinitions="60,Auto,*,80,80">
+                <Label Grid.Column="0" Text="DATE" TextColor="{StaticResource Muted}" FontSize="9" FontAttributes="Bold"/>
+                <Label Grid.Column="1" Text="" WidthRequest="24"/>
+                <Label Grid.Column="2" Text="TYPE" TextColor="{StaticResource Muted}" FontSize="9" FontAttributes="Bold"/>
+                <Label Grid.Column="3" Text="AMOUNT" TextColor="{StaticResource Muted}" FontSize="9" FontAttributes="Bold" HorizontalOptions="End"/>
+                <Label Grid.Column="4" Text="BALANCE" TextColor="{StaticResource Muted}" FontSize="9" FontAttributes="Bold" HorizontalOptions="End"/>
+            </Grid>
+        </Border>
+
+        <!-- ═══════════════════════════════════════
+             LEDGER ENTRIES — Transaction List
+        ═══════════════════════════════════════ -->
+        <CollectionView Grid.Row="3" ItemsSource="{Binding Entries}" Margin="14,4,14,4" SelectionMode="None">
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical" ItemSpacing="2"/>
+            </CollectionView.ItemsLayout>
+
+            <CollectionView.EmptyView>
+                <Border BackgroundColor="#0D1426" StrokeShape="RoundRectangle 14" Stroke="#161F30" Padding="24,28">
+                    <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                        <Label Text="📒" FontSize="42" HorizontalOptions="Center"/>
+                        <Label Text="Koi transaction nahi" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource White}" HorizontalOptions="Center"/>
+                        <Label Text="No transactions recorded yet" FontSize="12" TextColor="{StaticResource Muted}" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </Border>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:LedgerEntryDisplay">
+                    <Border BackgroundColor="#0A0E1A" StrokeShape="RoundRectangle 0" Stroke="#111828" StrokeThickness="0.5" Padding="12,11">
+                        <Grid ColumnDefinitions="60,Auto,*,80,80" ColumnSpacing="6">
+
+                            <!-- Date -->
+                            <VerticalStackLayout Grid.Column="0" Spacing="1" VerticalOptions="Center">
+                                <Label Text="{Binding DateDisplay}" TextColor="#90CAF9" FontSize="11" VerticalOptions="Center"/>
+                                <Label Text="{Binding TimeDisplay}" TextColor="{StaticResource Dim}" FontSize="8"/>
+                            </VerticalStackLayout>
+
+                            <!-- Type Icon -->
+                            <Label Grid.Column="1" Text="{Binding TypeIcon}" FontSize="16" VerticalOptions="Center" WidthRequest="24"/>
+
+                            <!-- Type + Description -->
+                            <VerticalStackLayout Grid.Column="2" Spacing="1" VerticalOptions="Center">
+                                <Label Text="{Binding TypeLabel}" TextColor="{Binding BadgeTextColor}" FontSize="11" FontAttributes="Bold"/>
+                                <Label Text="{Binding Description}" TextColor="{StaticResource Muted}" FontSize="9" LineBreakMode="TailTruncation"/>
+                            </VerticalStackLayout>
+
+                            <!-- Amount (color-coded) -->
+                            <Label Grid.Column="3" Text="{Binding AmountDisplay}" TextColor="{Binding AmountColor}" 
+                                   FontSize="12" FontAttributes="Bold" HorizontalOptions="End" VerticalOptions="Center"/>
+
+                            <!-- Running Balance + interpretation -->
+                            <VerticalStackLayout Grid.Column="4" Spacing="1" VerticalOptions="Center" HorizontalOptions="End">
+                                <Label Text="{Binding Balance, StringFormat='₹{0:N0}'}" TextColor="{Binding BalanceRowColor}" 
+                                       FontSize="12" FontAttributes="Bold" HorizontalOptions="End"/>
+                                <Label Text="{Binding BalanceInterpretation}" TextColor="{StaticResource Dim}" FontSize="7" HorizontalOptions="End"/>
+                            </VerticalStackLayout>
+
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- ═══════════════════════════════════════
+             CLEAR BALANCE BUTTON
+        ═══════════════════════════════════════ -->
+        <Button Grid.Row="4" Text="{Binding ClearButtonLabel}" 
+                BackgroundColor="{Binding ClearButtonColor}" TextColor="White" 
+                FontSize="14" FontAttributes="Bold" CornerRadius="14" 
+                HeightRequest="52" Margin="14,8,14,4"
+                Command="{Binding ClearBalanceCommand}" IsVisible="{Binding HasPendingBalance}"/>
+
+        <Grid Grid.Row="5" ColumnDefinitions="*,*" ColumnSpacing="10" Margin="14,0,14,20">
+            <Button Grid.Column="0" Text="📊  Export CSV" 
+                    BackgroundColor="#4A90D9" TextColor="White" 
+                    FontSize="14" FontAttributes="Bold" CornerRadius="14" 
+                    HeightRequest="50"
+                    Command="{Binding ExportCsvCommand}"/>
+
+            <Button Grid.Column="1" Text="📤  WhatsApp" 
+                    BackgroundColor="#25D366" TextColor="White" 
+                    FontSize="14" FontAttributes="Bold" CornerRadius="14" 
+                    HeightRequest="50"
+                    Command="{Binding ShareLedgerCommand}"/>
+        </Grid>
+
+    </Grid>
+</ContentPage>

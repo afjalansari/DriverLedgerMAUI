@@ -1,0 +1,648 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DriverLedger.ViewModels"
+    xmlns:dto="clr-namespace:DriverLedger.DTOs"
+    xmlns:models="clr-namespace:DriverLedger.Models" x:Class="DriverLedger.Views.DashboardPage" x:DataType="vm:DashboardViewModel" Title="" Shell.NavBarIsVisible="False" BackgroundColor="#080C18">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+
+            <!-- ══ Background / Card colors ══ -->
+            <Color x:Key="BgPage">#080C18</Color>
+            <Color x:Key="BgCard">#0D1426</Color>
+            <Color x:Key="CardBlue">#0A1830</Color>
+            <Color x:Key="CardGreen">#071C10</Color>
+            <Color x:Key="CardOrange">#1C0E00</Color>
+            <Color x:Key="CardPurple">#120820</Color>
+            <Color x:Key="CardDark">#0E1520</Color>
+            <Color x:Key="CardGold">#141000</Color>
+            <Color x:Key="SubBg">#070E1C</Color>
+
+            <!-- ══ Border colors ══ -->
+            <Color x:Key="BorderBlue">#1A3560</Color>
+            <Color x:Key="BorderGreen">#153A20</Color>
+            <Color x:Key="BorderOrange">#3A1E00</Color>
+            <Color x:Key="BorderPurple">#2E1550</Color>
+            <Color x:Key="BorderDark">#161F30</Color>
+            <Color x:Key="BorderGold">#302600</Color>
+
+            <!-- ══ Accent colors ══ -->
+            <Color x:Key="Blue">#4A90D9</Color>
+            <Color x:Key="Green">#2ECC71</Color>
+            <Color x:Key="Orange">#FF8C42</Color>
+            <Color x:Key="Red">#E74C3C</Color>
+            <Color x:Key="Purple">#A855F7</Color>
+            <Color x:Key="Gold">#FFB800</Color>
+            <Color x:Key="White">#FFFFFF</Color>
+            <Color x:Key="Muted">#566A7F</Color>
+            <Color x:Key="Dim">#7A8FA6</Color>
+
+            <!-- ══ Shared styles ══ -->
+            <Style x:Key="SecTitle" TargetType="Label">
+                <Setter Property="FontSize" Value="17"/>
+                <Setter Property="FontAttributes" Value="Bold"/>
+                <Setter Property="TextColor" Value="#FFFFFF"/>
+            </Style>
+
+            <Style x:Key="KpiLabel" TargetType="Label">
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="TextColor" Value="{StaticResource Muted}"/>
+            </Style>
+
+            <Style x:Key="KpiValue" TargetType="Label">
+                <Setter Property="FontSize" Value="26"/>
+                <Setter Property="FontAttributes" Value="Bold"/>
+            </Style>
+
+            <Style x:Key="FleetCard" TargetType="Border">
+                <Setter Property="BackgroundColor" Value="{StaticResource CardDark}"/>
+                <Setter Property="StrokeShape" Value="RoundRectangle 16"/>
+                <Setter Property="Stroke" Value="{StaticResource BorderDark}"/>
+                <Setter Property="StrokeThickness" Value="1"/>
+                <Setter Property="Padding" Value="14,12"/>
+            </Style>
+
+            <Style x:Key="PerfCard" TargetType="Border">
+                <Setter Property="StrokeShape" Value="RoundRectangle 16"/>
+                <Setter Property="StrokeThickness" Value="1"/>
+                <Setter Property="Padding" Value="10,14"/>
+            </Style>
+
+            <Style x:Key="AlertCard" TargetType="Border">
+                <Setter Property="StrokeShape" Value="RoundRectangle 14"/>
+                <Setter Property="StrokeThickness" Value="1"/>
+                <Setter Property="Padding" Value="14,12"/>
+            </Style>
+
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <!-- ══ ROOT: scroll + pinned tab ══ -->
+    <Grid RowDefinitions="*,Auto">
+
+        <!-- ══════════════════════════════════════════
+             SCROLL AREA
+        ══════════════════════════════════════════ -->
+        <RefreshView Grid.Row="0" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsBusy}" RefreshColor="{StaticResource Blue}">
+
+            <ScrollView>
+                <VerticalStackLayout Spacing="0">
+
+                    <!-- ════════════════════════════════
+                         HEADER
+                    ════════════════════════════════ -->
+                    <Grid BackgroundColor="{StaticResource BgCard}" Padding="18,50,18,16" RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto,Auto">
+
+                        <!-- Hamburger -->
+                        <Label Grid.Row="0" Grid.Column="0" Text="☰" FontSize="22" TextColor="{StaticResource White}" VerticalOptions="Center" Margin="0,0,14,0">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding SettingsCommand}"/>
+                            </Label.GestureRecognizers>
+                        </Label>
+
+                        <!-- Logo + company -->
+                        <VerticalStackLayout Grid.Row="0" Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <HorizontalStackLayout Spacing="7">
+                                <Label Text="🚕" FontSize="19" VerticalOptions="Center"/>
+                                <Label Text="Driver" FontSize="21" FontAttributes="Bold" TextColor="{StaticResource White}" VerticalOptions="Center"/>
+                                <Label Text="Ledger" FontSize="21" FontAttributes="Bold" TextColor="{StaticResource Blue}" VerticalOptions="Center"/>
+                            </HorizontalStackLayout>
+                            <Label Text="{Binding CompanyName}" FontSize="11.5" TextColor="{StaticResource Muted}"/>
+                        </VerticalStackLayout>
+
+                        <!-- Bell + badge -->
+                        <Grid Grid.Row="0" Grid.Column="2" Margin="0,0,12,0" VerticalOptions="Center" WidthRequest="38" HeightRequest="38">
+
+                            <Border BackgroundColor="#121E38" StrokeShape="RoundRectangle 19" Stroke="{StaticResource BorderBlue}" StrokeThickness="1" WidthRequest="38" HeightRequest="38">
+                                <Label Text="🔔" FontSize="17" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            </Border>
+
+                            <!-- Badge: shown when HasNotifications = true -->
+                            <Border BackgroundColor="{StaticResource Red}" StrokeShape="RoundRectangle 9" Stroke="{StaticResource BgPage}" StrokeThickness="1.5" WidthRequest="18" HeightRequest="18" HorizontalOptions="End" VerticalOptions="Start" Margin="0,-4,-4,0" IsVisible="{Binding HasNotifications}">
+                                <Label Text="{Binding NotificationCount}" FontSize="9" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            </Border>
+
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding SettingsCommand}"/>
+                            </Grid.GestureRecognizers>
+                        </Grid>
+
+                        <!-- Avatar -->
+                        <Border Grid.Row="0" Grid.Column="3" StrokeShape="RoundRectangle 24" WidthRequest="44" HeightRequest="44" Stroke="{StaticResource Blue}" StrokeThickness="1.5">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#1A3560" Offset="0"/>
+                                    <GradientStop Color="#2E1550" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Label Text="👤" FontSize="22" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding SettingsCommand}"/>
+                            </Border.GestureRecognizers>
+                        </Border>
+
+                        <!-- Date row -->
+                        <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="4" Spacing="6" Margin="0,12,0,0">
+                            <Label Text="Welcome back" FontSize="12.5" TextColor="{StaticResource Muted}"/>
+                            <Label Text="·" TextColor="{StaticResource Blue}" FontSize="12.5"/>
+                            <Label Text="{Binding DateLabel}" FontSize="12.5" FontAttributes="Bold" TextColor="{StaticResource Blue}"/>
+                        </HorizontalStackLayout>
+
+                    </Grid>
+
+                    <!-- ════════════════════════════════
+                         BODY
+                    ════════════════════════════════ -->
+                    <VerticalStackLayout Padding="14,18,14,16" Spacing="24">
+
+                        <!-- Export Daily Report Card -->
+                        <Border BackgroundColor="#0D1426" StrokeShape="RoundRectangle 14" Stroke="{StaticResource BorderBlue}" StrokeThickness="1.5" Padding="14,12">
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <Label Grid.Column="0" Text="📊" FontSize="20" VerticalOptions="Center" Margin="0,0,12,0"/>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="Daily Performance Report" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource White}"/>
+                                    <Label Text="Export today's summary to CSV" FontSize="11" TextColor="{StaticResource Muted}"/>
+                                </VerticalStackLayout>
+                                <Button Grid.Column="2" Text="Export" BackgroundColor="{StaticResource Blue}" TextColor="White" FontSize="12" FontAttributes="Bold" CornerRadius="8" HeightRequest="36" Padding="15,0" Command="{Binding ExportSummaryCommand}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Loading -->
+                        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource Blue}" HeightRequest="44"/>
+
+                        <!-- ── KPI 2×2 ────────────────────────── -->
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+
+                            <!-- Today Income -->
+                            <Border Grid.Row="0" Grid.Column="0" BackgroundColor="{StaticResource CardBlue}" StrokeShape="RoundRectangle 18" Stroke="{StaticResource BorderBlue}" StrokeThickness="1.5" Padding="16,14">
+                                <VerticalStackLayout Spacing="7">
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="💵" FontSize="13"/>
+                                        <Label Text="Today Income" Style="{StaticResource KpiLabel}"/>
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Spacing="0" VerticalOptions="Center">
+                                        <Label Text="₹" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource White}" VerticalOptions="End" Margin="0,0,1,5"/>
+                                        <Label Text="{Binding TodayIncome, StringFormat='{0:N0}'}" Style="{StaticResource KpiValue}" TextColor="{StaticResource White}"/>
+                                    </HorizontalStackLayout>
+                                    <!-- Thin accent line -->
+                                    <BoxView HeightRequest="2" CornerRadius="1" Margin="0,2,0,0">
+                                        <BoxView.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Color="{StaticResource Blue}" Offset="0"/>
+                                                <GradientStop Color="Transparent" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </BoxView.Background>
+                                    </BoxView>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- Today Profit -->
+                            <Border Grid.Row="0" Grid.Column="1" BackgroundColor="{StaticResource CardGreen}" StrokeShape="RoundRectangle 18" Stroke="{StaticResource BorderGreen}" StrokeThickness="1.5" Padding="16,14">
+                                <VerticalStackLayout Spacing="7">
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="📈" FontSize="13"/>
+                                        <Label Text="Today Profit" Style="{StaticResource KpiLabel}"/>
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Spacing="0" VerticalOptions="Center">
+                                        <Label Text="₹" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Green}" VerticalOptions="End" Margin="0,0,1,5"/>
+                                        <Label Text="{Binding TodayProfit, StringFormat='{0:N0}'}" Style="{StaticResource KpiValue}" TextColor="{StaticResource Green}"/>
+                                    </HorizontalStackLayout>
+                                    <BoxView HeightRequest="2" CornerRadius="1" Margin="0,2,0,0">
+                                        <BoxView.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Color="{StaticResource Green}" Offset="0"/>
+                                                <GradientStop Color="Transparent" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </BoxView.Background>
+                                    </BoxView>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- Settlements -->
+                            <Border Grid.Row="1" Grid.Column="0" BackgroundColor="{StaticResource CardOrange}" StrokeShape="RoundRectangle 18" Stroke="{StaticResource BorderOrange}" StrokeThickness="1.5" Padding="16,14">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SettlementsCommand}"/>
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="7">
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="📋" FontSize="13"/>
+                                        <Label Text="Settlements" Style="{StaticResource KpiLabel}"/>
+                                    </HorizontalStackLayout>
+                                    <Label Text="{Binding SettlementCount}" FontSize="32" FontAttributes="Bold" TextColor="{StaticResource White}"/>
+                                    <Border BackgroundColor="#3A1800" StrokeShape="RoundRectangle 8" Padding="8,3" HorizontalOptions="Start">
+                                        <Label Text="{Binding PendingSettlementsCount, StringFormat='{0} PENDING'}" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Orange}"/>
+                                    </Border>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- Cash In Hand -->
+                            <Border Grid.Row="1" Grid.Column="1" BackgroundColor="{StaticResource CardPurple}" StrokeShape="RoundRectangle 18" Stroke="{StaticResource BorderPurple}" StrokeThickness="1.5" Padding="16,14">
+                                <VerticalStackLayout Spacing="7">
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="💜" FontSize="13"/>
+                                        <Label Text="Cash In Hand" Style="{StaticResource KpiLabel}"/>
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Spacing="0" VerticalOptions="Center">
+                                        <Label Text="₹" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource Purple}" VerticalOptions="End" Margin="0,0,1,5"/>
+                                        <Label Text="{Binding CashInHand, StringFormat='{0:N0}'}" Style="{StaticResource KpiValue}" TextColor="{StaticResource Purple}"/>
+                                    </HorizontalStackLayout>
+                                    <Label Text="Available balance" FontSize="10" TextColor="#5A3A80"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                        </Grid>
+
+                        <!-- ── FLEET OVERVIEW ─────────────────── -->
+                        <VerticalStackLayout Spacing="12">
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0" Text="Fleet Overview" Style="{StaticResource SecTitle}"/>
+                                <Label Grid.Column="1" Text="View All →" FontSize="12" TextColor="{StaticResource Blue}" VerticalOptions="Center">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding VehiclesCommand}"/>
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+
+                                <!-- Vehicles -->
+                                <Border Grid.Column="0" Style="{StaticResource FleetCard}">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding VehiclesCommand}"/>
+                                    </Border.GestureRecognizers>
+                                    <VerticalStackLayout Spacing="5">
+                                        <Label Text="🚕" FontSize="22"/>
+                                        <Label Text="Vehicles" FontSize="11" TextColor="{StaticResource Muted}"/>
+                                        <Label Text="{Binding TotalVehicles}" FontSize="26" FontAttributes="Bold" TextColor="{StaticResource White}"/>
+                                        <HorizontalStackLayout Spacing="5">
+                                            <BoxView WidthRequest="7" HeightRequest="7" CornerRadius="4" VerticalOptions="Center" BackgroundColor="{StaticResource Green}"/>
+                                            <Label Text="{Binding ActiveVehiclesToday, StringFormat='Active: {0}'}" FontSize="10" TextColor="{StaticResource Green}"/>
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <!-- Drivers -->
+                                <Border Grid.Column="1" Style="{StaticResource FleetCard}">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding DriversCommand}"/>
+                                    </Border.GestureRecognizers>
+                                    <VerticalStackLayout Spacing="5">
+                                        <Label Text="👨‍✈️" FontSize="22"/>
+                                        <Label Text="Drivers" FontSize="11" TextColor="{StaticResource Muted}"/>
+                                        <Label Text="{Binding TotalDrivers}" FontSize="26" FontAttributes="Bold" TextColor="{StaticResource White}"/>
+                                        <HorizontalStackLayout Spacing="5">
+                                            <BoxView WidthRequest="7" HeightRequest="7" CornerRadius="4" VerticalOptions="Center" BackgroundColor="{StaticResource Green}"/>
+                                            <Label Text="{Binding ActiveDriversToday, StringFormat='Active: {0}'}" FontSize="10" TextColor="{StaticResource Green}"/>
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <!-- On Duty -->
+                                <Border Grid.Column="2" BackgroundColor="{StaticResource CardGreen}" StrokeShape="RoundRectangle 16" Stroke="{StaticResource BorderGreen}" StrokeThickness="1" Padding="14,12">
+                                    <VerticalStackLayout Spacing="5">
+                                        <HorizontalStackLayout Spacing="5">
+                                            <BoxView WidthRequest="8" HeightRequest="8" CornerRadius="4" BackgroundColor="{StaticResource Green}" VerticalOptions="Center"/>
+                                            <Label Text="On Duty" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Green}"/>
+                                        </HorizontalStackLayout>
+                                        <Label Text="{Binding OnDutyCount}" FontSize="26" FontAttributes="Bold" TextColor="{StaticResource Green}"/>
+                                        <Label Text="Right Now" FontSize="10" TextColor="#2A6A40"/>
+                                    </VerticalStackLayout>
+                                </Border>
+
+                            </Grid>
+                        </VerticalStackLayout>
+
+                        <!-- ── TODAY SUMMARY + DRIVER LEDGER ──── -->
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+
+                            <!-- Today's Summary -->
+                            <Border Grid.Column="0" BackgroundColor="{StaticResource CardDark}" StrokeShape="RoundRectangle 18" Stroke="{StaticResource BorderDark}" StrokeThickness="1" Padding="14">
+                                <VerticalStackLayout Spacing="10">
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Grid.Column="0" Text="Today's Summary" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource White}"/>
+                                        <Label Grid.Column="1" Text="›" FontSize="16" TextColor="{StaticResource Blue}">
+                                            <Label.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding AnalyticsCommand}"/>
+                                            </Label.GestureRecognizers>
+                                        </Label>
+                                    </Grid>
+
+                                    <!-- Line items -->
+                                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="9">
+
+                                        <Label Grid.Row="0" Grid.Column="0" Text="🖥️" FontSize="12"/>
+                                        <Label Grid.Row="0" Grid.Column="1" Text="Operator" FontSize="10" TextColor="{StaticResource Muted}" Margin="6,0,0,0" VerticalOptions="Center"/>
+                                        <Label Grid.Row="0" Grid.Column="2" Text="{Binding TodayOperatorBill, StringFormat='₹{0:N0}'}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource White}"/>
+
+                                        <Label Grid.Row="1" Grid.Column="0" Text="💰" FontSize="12"/>
+                                        <Label Grid.Row="1" Grid.Column="1" Text="Collected" FontSize="10" TextColor="{StaticResource Muted}" Margin="6,0,0,0" VerticalOptions="Center"/>
+                                        <Label Grid.Row="1" Grid.Column="2" Text="{Binding TodayCashCollected, StringFormat='₹{0:N0}'}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Green}"/>
+
+                                        <Label Grid.Row="2" Grid.Column="0" Text="⛽" FontSize="12"/>
+                                        <Label Grid.Row="2" Grid.Column="1" Text="Fuel/CNG" FontSize="10" TextColor="{StaticResource Muted}" Margin="6,0,0,0" VerticalOptions="Center"/>
+                                        <Label Grid.Row="2" Grid.Column="2" Text="{Binding TodayCNG, StringFormat='₹{0:N0}'}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Red}"/>
+
+                                        <BoxView Grid.Row="3" Grid.ColumnSpan="3" HeightRequest="1" BackgroundColor="{StaticResource BorderDark}"/>
+
+                                        <BoxView Grid.Row="4" Grid.Column="0" WidthRequest="8" HeightRequest="8" CornerRadius="4" BackgroundColor="{StaticResource Green}" VerticalOptions="Center"/>
+                                        <Label Grid.Row="4" Grid.Column="1" Text="Net Profit" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Green}" Margin="6,0,0,0" VerticalOptions="Center"/>
+                                        <Label Grid.Row="4" Grid.Column="2" Text="{Binding TodayOwnerNetProfit, StringFormat='₹{0:N0}'}" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource Green}"/>
+
+                                    </Grid>
+
+                                    <!-- Mini bar chart -->
+                                    <Grid ColumnDefinitions="*,*,*,*,*,*,*" HeightRequest="28" ColumnSpacing="3" Margin="0,2,0,0">
+                                        <BoxView Grid.Column="0" BackgroundColor="#152A4A" CornerRadius="2" VerticalOptions="End" HeightRequest="10"/>
+                                        <BoxView Grid.Column="1" BackgroundColor="#1E3E70" CornerRadius="2" VerticalOptions="End" HeightRequest="16"/>
+                                        <BoxView Grid.Column="2" BackgroundColor="#1E3E70" CornerRadius="2" VerticalOptions="End" HeightRequest="12"/>
+                                        <BoxView Grid.Column="3" BackgroundColor="{StaticResource Blue}" CornerRadius="2" VerticalOptions="End" HeightRequest="22"/>
+                                        <BoxView Grid.Column="4" BackgroundColor="#1E3E70" CornerRadius="2" VerticalOptions="End" HeightRequest="15"/>
+                                        <BoxView Grid.Column="5" BackgroundColor="{StaticResource Blue}" CornerRadius="2" VerticalOptions="End" HeightRequest="26"/>
+                                        <BoxView Grid.Column="6" BackgroundColor="{StaticResource Green}" CornerRadius="2" VerticalOptions="End" HeightRequest="18"/>
+                                    </Grid>
+
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- Driver Ledger -->
+                            <Border Grid.Column="1" StrokeShape="RoundRectangle 18" Stroke="{StaticResource BorderBlue}" StrokeThickness="1.5" Padding="14">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="#0A1830" Offset="0"/>
+                                        <GradientStop Color="#080C18" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                                <VerticalStackLayout Spacing="10">
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <HorizontalStackLayout Grid.Column="0" Spacing="0">
+                                            <Label Text="Driver " FontSize="13" FontAttributes="Bold" TextColor="{StaticResource White}"/>
+                                            <Label Text="Ledger" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Blue}"/>
+                                        </HorizontalStackLayout>
+                                        <Label Grid.Column="1" Text="›" FontSize="16" TextColor="{StaticResource Blue}">
+                                            <Label.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding DriverLedgerCommand}"/>
+                                            </Label.GestureRecognizers>
+                                        </Label>
+                                    </Grid>
+
+                                    <!-- Driver se lena (drivers owe owner) -->
+                                    <Border BackgroundColor="{StaticResource SubBg}" StrokeShape="RoundRectangle 12" Stroke="{StaticResource BorderBlue}" StrokeThickness="1" Padding="10,10">
+                                        <VerticalStackLayout Spacing="4">
+                                            <Label Text="Driver se Lena hai" FontSize="10" TextColor="{StaticResource Muted}"/>
+                                            <Label Text="Drivers owe you" FontSize="8" TextColor="#3A5570"/>
+                                            <HorizontalStackLayout Spacing="2">
+                                                <Label Text="₹" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Green}" VerticalOptions="End" Margin="0,0,0,2"/>
+                                                <Label Text="{Binding OwnerToGet, StringFormat='{0:N0}'}" FontSize="21" FontAttributes="Bold" TextColor="{StaticResource Green}"/>
+                                            </HorizontalStackLayout>
+                                        </VerticalStackLayout>
+                                    </Border>
+
+                                    <!-- Driver ko dena (owner owes drivers) -->
+                                    <Border BackgroundColor="{StaticResource SubBg}" StrokeShape="RoundRectangle 12" Stroke="#2A1520" StrokeThickness="1" Padding="10,10">
+                                        <VerticalStackLayout Spacing="4">
+                                            <Label Text="Driver ko Dena hai" FontSize="10" TextColor="{StaticResource Muted}"/>
+                                            <Label Text="You owe drivers" FontSize="8" TextColor="#3A5570"/>
+                                            <HorizontalStackLayout Spacing="2">
+                                                <Label Text="₹" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Red}" VerticalOptions="End" Margin="0,0,0,2"/>
+                                                <Label Text="{Binding OwnerOwes, StringFormat='{0:N0}'}" FontSize="21" FontAttributes="Bold" TextColor="{StaticResource Red}"/>
+                                            </HorizontalStackLayout>
+                                        </VerticalStackLayout>
+                                    </Border>
+
+                                    <Button Text="View Details" BackgroundColor="{StaticResource Blue}" TextColor="White" FontSize="13" FontAttributes="Bold" CornerRadius="12" HeightRequest="40" Command="{Binding DriverLedgerCommand}"/>
+
+                                </VerticalStackLayout>
+                            </Border>
+
+                        </Grid>
+
+                        <!-- ── TOP PERFORMANCE ────────────────── -->
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="Top Performance" Style="{StaticResource SecTitle}"/>
+
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+
+                                <!-- Top Driver -->
+                                <Border Grid.Column="0" Style="{StaticResource PerfCard}" BackgroundColor="{StaticResource CardGold}" Stroke="{StaticResource BorderGold}">
+                                    <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                        <HorizontalStackLayout Spacing="4" HorizontalOptions="Center">
+                                            <Label Text="🏆" FontSize="11"/>
+                                            <Label Text="Top Driver" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Gold}"/>
+                                        </HorizontalStackLayout>
+                                        <Label Text="👨‍✈️" FontSize="28" HorizontalOptions="Center"/>
+                                        <Label Text="{Binding TopDriverName}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource White}" HorizontalOptions="Center" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation"/>
+                                        <HorizontalStackLayout Spacing="2" HorizontalOptions="Center">
+                                            <Label Text="₹" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Gold}" VerticalOptions="End" Margin="0,0,0,1"/>
+                                            <Label Text="{Binding TopDriverEarnings, StringFormat='{0:N0}'}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Gold}"/>
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <!-- Top Vehicle -->
+                                <Border Grid.Column="1" Style="{StaticResource PerfCard}" BackgroundColor="{StaticResource CardDark}" Stroke="{StaticResource BorderDark}">
+                                    <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                        <HorizontalStackLayout Spacing="4" HorizontalOptions="Center">
+                                            <Label Text="🚕" FontSize="11"/>
+                                            <Label Text="Top Vehicle" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Muted}"/>
+                                        </HorizontalStackLayout>
+                                        <Label Text="🚗" FontSize="28" HorizontalOptions="Center"/>
+                                        <Label Text="{Binding TopVehicleNumber}" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource White}" HorizontalOptions="Center"/>
+                                        <HorizontalStackLayout Spacing="2" HorizontalOptions="Center">
+                                            <Label Text="₹" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Blue}" VerticalOptions="End" Margin="0,0,0,1"/>
+                                            <Label Text="{Binding TopVehicleEarning, StringFormat='{0:N0}'}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Blue}"/>
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <!-- Most Trips -->
+                                <Border Grid.Column="2" Style="{StaticResource PerfCard}" BackgroundColor="{StaticResource CardBlue}" Stroke="{StaticResource BorderBlue}">
+                                    <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                                        <HorizontalStackLayout Spacing="4" HorizontalOptions="Center">
+                                            <Label Text="📊" FontSize="11"/>
+                                            <Label Text="Most Trips" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Muted}"/>
+                                        </HorizontalStackLayout>
+                                        <Label Text="📈" FontSize="28" HorizontalOptions="Center"/>
+                                        <Label Text="{Binding MostTripsCount, StringFormat='{0} Trips'}" FontSize="13" FontAttributes="Bold" TextColor="{StaticResource Blue}" HorizontalOptions="Center"/>
+                                        <Label Text="Today" FontSize="10" TextColor="{StaticResource Muted}" HorizontalOptions="Center"/>
+                                    </VerticalStackLayout>
+                                </Border>
+
+                            </Grid>
+                        </VerticalStackLayout>
+
+                        <!-- ── SMART ALERTS ───────────────────── -->
+                        <VerticalStackLayout Spacing="10" IsVisible="{Binding HasAlerts}">
+                            <Label Text="Alerts" Style="{StaticResource SecTitle}"/>
+
+                            <CollectionView ItemsSource="{Binding Alerts}" SelectionMode="None">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="8"/>
+                                </CollectionView.ItemsLayout>
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="models:DashboardAlert">
+                                        <Border Style="{StaticResource AlertCard}" BackgroundColor="{Binding BackgroundColor}" Stroke="{Binding AccentColor}" StrokeThickness="1">
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                                <Border Grid.Column="0" BackgroundColor="{Binding AccentColor}" StrokeShape="RoundRectangle 10" Padding="8" WidthRequest="40" HeightRequest="40" VerticalOptions="Start">
+                                                    <Label Text="{Binding Icon}" FontSize="18" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                                </Border>
+                                                <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                                    <Label Text="{Binding Title}" FontSize="13" FontAttributes="Bold" TextColor="{Binding TitleColor}"/>
+                                                    <Label Text="{Binding Message}" FontSize="11.5" TextColor="{StaticResource Dim}" LineBreakMode="WordWrap"/>
+                                                </VerticalStackLayout>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+
+                        <!-- ── RECENT SETTLEMENTS ─────────────── -->
+                        <VerticalStackLayout Spacing="12">
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0" Text="Recent Settlements" Style="{StaticResource SecTitle}"/>
+                                <Label Grid.Column="1" Text="View All →" FontSize="12" TextColor="{StaticResource Blue}" VerticalOptions="Center">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding SettlementsCommand}"/>
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </Grid>
+
+                            <CollectionView ItemsSource="{Binding RecentSettlements}" SelectionMode="None">
+                                <CollectionView.ItemsLayout>
+                                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="10"/>
+                                </CollectionView.ItemsLayout>
+
+                                <!-- Empty state -->
+                                <CollectionView.EmptyView>
+                                    <Border BackgroundColor="{StaticResource CardDark}" StrokeShape="RoundRectangle 16" Stroke="{StaticResource BorderDark}" Padding="24,28">
+                                        <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                                            <Label Text="✅" FontSize="38" HorizontalOptions="Center"/>
+                                            <Label Text="All Clear!" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource White}" HorizontalOptions="Center"/>
+                                            <Label Text="No settlements recorded yet" FontSize="12" TextColor="{StaticResource Muted}" HorizontalOptions="Center"/>
+                                            <Button Text="+ New Settlement" BackgroundColor="{StaticResource Blue}" TextColor="White" FontSize="13" FontAttributes="Bold" CornerRadius="12" Padding="20,10" Margin="0,8,0,0" Command="{Binding SettlementsCommand}"/>
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </CollectionView.EmptyView>
+
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="dto:RecentSettlementItem">
+                                        <Border BackgroundColor="{StaticResource CardDark}" StrokeShape="RoundRectangle 18" Stroke="{StaticResource BorderDark}" StrokeThickness="1" Padding="16">
+                                            <VerticalStackLayout Spacing="12">
+                                                <!-- Header: Driver + Date -->
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <VerticalStackLayout Grid.Column="0">
+                                                        <Label Text="{Binding DriverName}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource White}"/>
+                                                        <Label Text="{Binding VehicleNumber}" FontSize="11" TextColor="{StaticResource Blue}"/>
+                                                    </VerticalStackLayout>
+                                                    <Label Grid.Column="1" Text="{Binding DateDisplay}" FontSize="11" TextColor="{StaticResource Muted}" VerticalOptions="Start"/>
+                                                </Grid>
+
+                                                <BoxView HeightRequest="1" BackgroundColor="#1A2540"/>
+
+                                                <!-- 4-Column Grid for Details -->
+                                                <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="4">
+                                                    <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                                        <Label Text="Total Income" FontSize="8" TextColor="{StaticResource Muted}"/>
+                                                        <Label Text="{Binding TotalIncome, StringFormat='₹{0:N0}'}" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource White}"/>
+                                                    </VerticalStackLayout>
+                                                    <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                        <Label Text="Driver Share" FontSize="8" TextColor="{StaticResource Muted}"/>
+                                                        <Label Text="{Binding DriverShare, StringFormat='₹{0:N0}'}" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Orange}"/>
+                                                    </VerticalStackLayout>
+                                                    <VerticalStackLayout Grid.Column="2" Spacing="2">
+                                                        <Label Text="Cash Liya" FontSize="8" TextColor="{StaticResource Muted}"/>
+                                                        <Label Text="{Binding TotalCashCollected, StringFormat='₹{0:N0}'}" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Red}"/>
+                                                    </VerticalStackLayout>
+                                                    <VerticalStackLayout Grid.Column="3" Spacing="2" HorizontalOptions="End">
+                                                        <Label Text="Kharcha" FontSize="8" TextColor="{StaticResource Muted}" HorizontalOptions="End"/>
+                                                        <Label Text="{Binding TotalOwnerExpenses, StringFormat='₹{0:N0}'}" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Teal}" HorizontalOptions="End"/>
+                                                    </VerticalStackLayout>
+                                                </Grid>
+
+                                                <!-- Final Result: Highlighted -->
+                                                <Border BackgroundColor="#0A1830" StrokeShape="RoundRectangle 12" Stroke="{Binding ResultColor}" StrokeThickness="1" Padding="12,8">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <Label Grid.Column="0" Text="FINAL HISAAB" FontSize="11" FontAttributes="Bold" TextColor="{StaticResource White}" VerticalOptions="Center"/>
+                                                        <Label Grid.Column="1" Text="{Binding SettlementResult}" FontSize="14" FontAttributes="Bold" TextColor="{Binding ResultColor}" VerticalOptions="Center"/>
+                                                    </Grid>
+                                                </Border>
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+
+                        </VerticalStackLayout>
+
+                        <!-- bottom spacer for tab bar -->
+                        <BoxView HeightRequest="6" Color="Transparent"/>
+
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+
+        <!-- ══════════════════════════════════════════
+             TAB BAR — pinned bottom
+        ══════════════════════════════════════════ -->
+        <Grid Grid.Row="1" BackgroundColor="{StaticResource BgCard}" ColumnDefinitions="*,*,*,*,*" Padding="0,8,0,28">
+
+            <!-- Top separator -->
+            <BoxView Grid.ColumnSpan="5" HeightRequest="1" BackgroundColor="#141F30" VerticalOptions="Start"/>
+
+            <!-- Dashboard (active) -->
+            <VerticalStackLayout Grid.Column="0" Spacing="4" HorizontalOptions="Center">
+                <Border BackgroundColor="#0E2040" StrokeShape="RoundRectangle 14" Stroke="{StaticResource BorderBlue}" StrokeThickness="1" Padding="12,6" HorizontalOptions="Center">
+                    <Label Text="⊞" FontSize="20" TextColor="{StaticResource Blue}"/>
+                </Border>
+                <Label Text="Dashboard" FontSize="10" FontAttributes="Bold" TextColor="{StaticResource Blue}" HorizontalOptions="Center"/>
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding RefreshCommand}"/>
+                </VerticalStackLayout.GestureRecognizers>
+            </VerticalStackLayout>
+
+            <!-- Drivers -->
+            <VerticalStackLayout Grid.Column="1" Spacing="4" HorizontalOptions="Center">
+                <Label Text="👨‍✈️" FontSize="24" HorizontalOptions="Center"/>
+                <Label Text="Drivers" FontSize="10" TextColor="{StaticResource Muted}" HorizontalOptions="Center"/>
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding DriversCommand}"/>
+                </VerticalStackLayout.GestureRecognizers>
+            </VerticalStackLayout>
+
+            <!-- Vehicles -->
+            <VerticalStackLayout Grid.Column="2" Spacing="4" HorizontalOptions="Center">
+                <Label Text="🚗" FontSize="24" HorizontalOptions="Center"/>
+                <Label Text="Vehicles" FontSize="10" TextColor="{StaticResource Muted}" HorizontalOptions="Center"/>
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding VehiclesCommand}"/>
+                </VerticalStackLayout.GestureRecognizers>
+            </VerticalStackLayout>
+
+            <!-- Settlements -->
+            <VerticalStackLayout Grid.Column="3" Spacing="4" HorizontalOptions="Center">
+                <Label Text="📋" FontSize="24" HorizontalOptions="Center"/>
+                <Label Text="Settlements" FontSize="10" TextColor="{StaticResource Muted}" HorizontalOptions="Center"/>
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SettlementsCommand}"/>
+                </VerticalStackLayout.GestureRecognizers>
+            </VerticalStackLayout>
+
+            <!-- Analytics -->
+            <VerticalStackLayout Grid.Column="4" Spacing="4" HorizontalOptions="Center">
+                <Label Text="📊" FontSize="24" HorizontalOptions="Center"/>
+                <Label Text="Analytics" FontSize="10" TextColor="{StaticResource Muted}" HorizontalOptions="Center"/>
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding AnalyticsCommand}"/>
+                </VerticalStackLayout.GestureRecognizers>
+            </VerticalStackLayout>
+
+        </Grid>
+
+    </Grid>
+</ContentPage>

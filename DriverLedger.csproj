@@ -1,0 +1,226 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Import local signing credentials (never commit signing.props to git) -->
+  <Import Project="signing.props" Condition="Exists('signing.props')" />
+
+	<!-- ========================================================= -->
+	<!-- BASIC PROJECT SETTINGS                                   -->
+	<!-- ========================================================= -->
+
+	<PropertyGroup>
+
+		<TargetFrameworks>net10.0-android</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">
+			$(TargetFrameworks);net10.0-windows10.0.19041.0
+		</TargetFrameworks>
+
+		<OutputType>Exe</OutputType>
+
+		<RootNamespace>DriverLedger</RootNamespace>
+
+		<UseMaui>true</UseMaui>
+		<SingleProject>true</SingleProject>
+
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<!-- XAML Compiler -->
+		<MauiXamlInflator>SourceGen</MauiXamlInflator>
+
+		<!-- App Info -->
+		<ApplicationTitle>DriverLedger</ApplicationTitle>
+		<ApplicationId>com.sabiyaco.driverledger</ApplicationId>
+
+		<ApplicationDisplayVersion>1.2.0</ApplicationDisplayVersion>
+		<ApplicationVersion>10</ApplicationVersion>
+
+		<!-- Unify version across frameworks to fix NU1105 -->
+		<Version>1.2.0</Version>
+		<PackageVersion>1.2.0</PackageVersion>
+
+		<!-- Windows -->
+		<WindowsPackageType>None</WindowsPackageType>
+
+	</PropertyGroup>
+
+
+	<!-- ========================================================= -->
+	<!-- PLATFORM SUPPORT                                          -->
+	<!-- ========================================================= -->
+
+	<PropertyGroup>
+
+		<!-- Android -->
+		<SupportedOSPlatformVersion Condition="'$(TargetFramework)'=='net10.0-android'">21.0</SupportedOSPlatformVersion>
+
+		<!-- iOS -->
+		<SupportedOSPlatformVersion Condition="'$(TargetFramework)'=='net10.0-ios'">15.0</SupportedOSPlatformVersion>
+
+		<!-- MacCatalyst -->
+		<SupportedOSPlatformVersion Condition="'$(TargetFramework)'=='net10.0-maccatalyst'">15.0</SupportedOSPlatformVersion>
+
+		<!-- Windows -->
+		<SupportedOSPlatformVersion Condition="'$(TargetFramework)'=='net10.0-windows10.0.19041.0'">10.0.17763.0</SupportedOSPlatformVersion>
+
+	</PropertyGroup>
+
+
+	<!-- ========================================================= -->
+	<!-- ANDROID RELEASE OPTIMIZATION                              -->
+	<!-- ========================================================= -->
+
+	<PropertyGroup Condition="'$(Configuration)'=='Release' AND '$(TargetFramework)'=='net10.0-android'">
+
+		<!-- Use modern Android build tools -->
+		<AndroidUseAapt2>true</AndroidUseAapt2>
+
+		<!-- Use APK for testing (PlayStore ke liye AAB use karna) -->
+		<AndroidPackageFormat>apk</AndroidPackageFormat>
+
+		<!-- ============================================================ -->
+		<!-- MULTI-ABI SUPPORT: Include ALL CPU architectures               -->
+		<!-- This fixes: "App not installed as app isn't compatible"        -->
+		<!-- android-arm   = 32-bit ARM (older phones)                      -->
+		<!-- android-arm64 = 64-bit ARM (modern phones, Play Store required)-->
+		<!-- android-x86   = 32-bit emulator                                -->
+		<!-- android-x64   = 64-bit emulator                                -->
+		<!-- RuntimeIdentifiers replaces deprecated AndroidSupportedAbis    -->
+		<!-- ============================================================ -->
+		<RuntimeIdentifiers>android-arm;android-arm64;android-x86;android-x64</RuntimeIdentifiers>
+
+		<!-- APK SIGNING -->
+		<!-- Passwords are read from 'signing.props' (never commit that file) -->
+		<AndroidKeyStore>true</AndroidKeyStore>
+		<AndroidSigningKeyStore>$(AndroidSigningKeyStorePath)</AndroidSigningKeyStore>
+		<AndroidSigningKeyAlias>$(AndroidSigningKeyAliasName)</AndroidSigningKeyAlias>
+		<AndroidSigningKeyPass>$(AndroidSigningKeyPassword)</AndroidSigningKeyPass>
+		<AndroidSigningStorePass>$(AndroidSigningStorePassword)</AndroidSigningStorePass>
+
+
+		<!-- Linker -->
+		<AndroidLinkMode>SdkOnly</AndroidLinkMode>
+
+		<!-- Avoid reflection issues -->
+		<TrimMode>partial</TrimMode>
+
+		<!-- Disable AOT (MAUI reflection issues avoid) -->
+		<RunAOTCompilation>false</RunAOTCompilation>
+
+		<!-- Embed assemblies -->
+		<EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+
+	</PropertyGroup>
+
+
+	<!-- ========================================================= -->
+	<!-- DEBUG CONFIG                                              -->
+	<!-- ========================================================= -->
+
+	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+
+		<AndroidLinkMode>None</AndroidLinkMode>
+		<TrimMode>copyused</TrimMode>
+
+		<!-- Enable debug symbols so the debugger can attach on Android -->
+		<DebugSymbols>true</DebugSymbols>
+		<DebugType>portable</DebugType>
+
+		<!--
+			FIX: XAJVC0000 — javac treats finalize() deprecation as error on API 36 / JDK 21.
+			The finalize() call is in MAUI's auto-generated Java bindings (not our code).
+			-Xlint:none suppresses all lint warnings so they are not promoted to errors.
+			AndroidJavacTarget=11 keeps bytecode compatible with the Android runtime.
+		-->
+		<AndroidJavacAdditionalArguments>-Xlint:none</AndroidJavacAdditionalArguments>
+		<AndroidJavacTarget>11</AndroidJavacTarget>
+
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net10.0-android|AnyCPU'">
+	  <AndroidPackageFormat>apk</AndroidPackageFormat>
+	</PropertyGroup>
+
+
+	<!-- ========================================================= -->
+	<!-- APP ICON & SPLASH                                         -->
+	<!-- ========================================================= -->
+
+	<ItemGroup>
+
+		<MauiIcon Include="Resources\AppIcon\appicon.png" Color="#1565C0" />
+
+		<MauiSplashScreen Include="Resources\Splash\splash.png" Color="#1565C0" />
+
+	</ItemGroup>
+
+
+	<!-- ========================================================= -->
+	<!-- IMAGES                                                    -->
+	<!-- ========================================================= -->
+
+	<ItemGroup>
+
+		<MauiImage Include="Resources\Images\*" />
+
+	</ItemGroup>
+
+
+	<!-- ========================================================= -->
+	<!-- FONTS                                                     -->
+	<!-- ========================================================= -->
+
+	<ItemGroup>
+
+		<MauiFont Include="Resources\Fonts\*" />
+
+	</ItemGroup>
+
+
+	<!-- ========================================================= -->
+	<!-- RAW ASSETS                                                -->
+	<!-- ========================================================= -->
+
+	<ItemGroup>
+
+		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+
+	</ItemGroup>
+
+
+	<!-- ========================================================= -->
+	<!-- XAML RESOURCE DICTIONARY                                  -->
+	<!-- ========================================================= -->
+
+	<ItemGroup>
+
+		<MauiXaml Update="Resources\Styles\Colors.xaml" Inflator="Runtime" />
+		<MauiXaml Update="Resources\Styles\Styles.xaml" Inflator="Runtime" />
+
+	</ItemGroup>
+
+
+	<!-- ========================================================= -->
+	<!-- NUGET PACKAGES                                            -->
+	<!-- ========================================================= -->
+
+	<ItemGroup>
+
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.60" />
+
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.7" />
+
+		<!-- SQLite Offline Database -->
+		<PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
+
+		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.11" />
+
+		<!-- BCrypt password hashing -->
+		<PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
+
+		<!-- PDF Generation -->
+		<PackageReference Include="QuestPDF" Version="2026.2.4" />
+
+	</ItemGroup>
+
+
+</Project>

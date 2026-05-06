@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.CompanyCreationPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#0D1B2A">
+
+    <ContentPage.Resources>
+        <Style x:Key="FieldLabel" TargetType="Label">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="TextColor" Value="#90A4AE"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        <Style x:Key="ErrorLabel" TargetType="Label">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextColor" Value="#FF5252"/>
+            <Setter Property="Margin" Value="4,2,0,0"/>
+        </Style>
+        <Style x:Key="FieldEntry" TargetType="Entry">
+            <Setter Property="BackgroundColor" Value="#243447"/>
+            <Setter Property="TextColor" Value="White"/>
+            <Setter Property="PlaceholderColor" Value="#90A4AE"/>
+            <Setter Property="HeightRequest" Value="52"/>
+        </Style>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <!-- Outer grid to dismiss keyboard on tap -->
+        <Grid x:Name="RootGrid" MinimumHeightRequest="700" RowDefinitions="Auto,*,Auto">
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnPageTapped"/>
+            </Grid.GestureRecognizers>
+
+            <!-- ── Header ───────────────────────────────────────────── -->
+            <VerticalStackLayout Grid.Row="0" Spacing="8"
+                                 HorizontalOptions="Center"
+                                 Padding="32,56,32,32">
+                <Label Text="🚖" FontSize="52" HorizontalOptions="Center"/>
+                <Label HorizontalOptions="Center">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="Driver" TextColor="White"   FontSize="30" FontAttributes="Bold"/>
+                            <Span Text="Ledger" TextColor="#2979FF" FontSize="30" FontAttributes="Bold"/>
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+                <Label Text="Create Your Company"
+                       FontSize="20" FontAttributes="Bold"
+                       TextColor="White" HorizontalOptions="Center"/>
+                <Label Text="Setup your fleet management account"
+                       FontSize="13" TextColor="#90A4AE" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+
+            <!-- ── Form Card ─────────────────────────────────────────── -->
+            <Border Grid.Row="1"
+                    BackgroundColor="#1A2C3D"
+                    StrokeShape="RoundRectangle 16"
+                    Stroke="#243447"
+                    StrokeThickness="1"
+                    Padding="24"
+                    Margin="20,0,20,24">
+                <Border.Shadow>
+                    <Shadow Brush="#000000" Offset="0,4" Radius="16" Opacity="0.35"/>
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="16">
+
+                    <!-- Company Name -->
+                    <VerticalStackLayout Spacing="0">
+                        <Label Text="Company Name" Style="{StaticResource FieldLabel}"/>
+                        <Border BackgroundColor="#243447" StrokeShape="RoundRectangle 10"
+                                Stroke="#2979FF" StrokeThickness="1" Padding="14,0">
+                            <Entry x:Name="EntryCompanyName"
+                                   Text="{Binding CompanyName}"
+                                   Placeholder="e.g. Sabiyaco Fleet Co."
+                                   Style="{StaticResource FieldEntry}"
+                                   ReturnType="Next"
+                                   ReturnCommand="{Binding FocusOwnerNameCommand}"/>
+                        </Border>
+                        <Label Text="{Binding CompanyNameError}"
+                               Style="{StaticResource ErrorLabel}"
+                               IsVisible="{Binding HasCompanyNameError}"/>
+                    </VerticalStackLayout>
+
+                    <!-- Owner Name -->
+                    <VerticalStackLayout Spacing="0">
+                        <Label Text="Owner Name" Style="{StaticResource FieldLabel}"/>
+                        <Border BackgroundColor="#243447" StrokeShape="RoundRectangle 10"
+                                Stroke="#2979FF" StrokeThickness="1" Padding="14,0">
+                            <Entry x:Name="EntryOwnerName"
+                                   Text="{Binding OwnerName}"
+                                   Placeholder="Full name of fleet owner"
+                                   Style="{StaticResource FieldEntry}"
+                                   ReturnType="Next"
+                                   ReturnCommand="{Binding FocusMobileCommand}"/>
+                        </Border>
+                        <Label Text="{Binding OwnerNameError}"
+                               Style="{StaticResource ErrorLabel}"
+                               IsVisible="{Binding HasOwnerNameError}"/>
+                    </VerticalStackLayout>
+
+                    <!-- Mobile Number -->
+                    <VerticalStackLayout Spacing="0">
+                        <Label Text="Mobile Number" Style="{StaticResource FieldLabel}"/>
+                        <Border BackgroundColor="#243447" StrokeShape="RoundRectangle 10"
+                                Stroke="#2979FF" StrokeThickness="1" Padding="14,0">
+                            <Entry x:Name="EntryMobile"
+                                   Text="{Binding MobileNumber}"
+                                   Placeholder="+91 9999 999999"
+                                   Keyboard="Telephone"
+                                   Style="{StaticResource FieldEntry}"
+                                   ReturnType="Next"
+                                   ReturnCommand="{Binding FocusCityCommand}"/>
+                        </Border>
+                        <Label Text="{Binding MobileNumberError}"
+                               Style="{StaticResource ErrorLabel}"
+                               IsVisible="{Binding HasMobileNumberError}"/>
+                    </VerticalStackLayout>
+
+                    <!-- City -->
+                    <VerticalStackLayout Spacing="0">
+                        <Label Text="City" Style="{StaticResource FieldLabel}"/>
+                        <Border BackgroundColor="#243447" StrokeShape="RoundRectangle 10"
+                                Stroke="#2979FF" StrokeThickness="1" Padding="14,0">
+                            <Entry x:Name="EntryCity"
+                                   Text="{Binding City}"
+                                   Placeholder="e.g. Mumbai"
+                                   Style="{StaticResource FieldEntry}"
+                                   ReturnType="Next"
+                                   ReturnCommand="{Binding FocusPasswordCommand}"/>
+                        </Border>
+                        <Label Text="{Binding CityError}"
+                               Style="{StaticResource ErrorLabel}"
+                               IsVisible="{Binding HasCityError}"/>
+                    </VerticalStackLayout>
+
+                    <!-- Password -->
+                    <VerticalStackLayout Spacing="0">
+                        <Label Text="Password" Style="{StaticResource FieldLabel}"/>
+                        <Border BackgroundColor="#243447" StrokeShape="RoundRectangle 10"
+                                Stroke="#2979FF" StrokeThickness="1" Padding="14,0">
+                            <Entry x:Name="EntryPassword"
+                                   Text="{Binding Password}"
+                                   Placeholder="Min 8 chars, 1 uppercase, 1 digit"
+                                   IsPassword="True"
+                                   Style="{StaticResource FieldEntry}"
+                                   ReturnType="Next"
+                                   ReturnCommand="{Binding FocusConfirmPasswordCommand}"/>
+                        </Border>
+                        <Label Text="{Binding PasswordError}"
+                               Style="{StaticResource ErrorLabel}"
+                               IsVisible="{Binding HasPasswordError}"/>
+                    </VerticalStackLayout>
+
+                    <!-- Confirm Password -->
+                    <VerticalStackLayout Spacing="0">
+                        <Label Text="Confirm Password" Style="{StaticResource FieldLabel}"/>
+                        <Border BackgroundColor="#243447" StrokeShape="RoundRectangle 10"
+                                Stroke="#2979FF" StrokeThickness="1" Padding="14,0">
+                            <Entry x:Name="EntryConfirmPassword"
+                                   Text="{Binding ConfirmPassword}"
+                                   Placeholder="Re-enter your password"
+                                   IsPassword="True"
+                                   Style="{StaticResource FieldEntry}"
+                                   ReturnType="Done"
+                                   ReturnCommand="{Binding CreateCommand}"/>
+                        </Border>
+                        <Label Text="{Binding ConfirmPasswordError}"
+                               Style="{StaticResource ErrorLabel}"
+                               IsVisible="{Binding HasConfirmPasswordError}"/>
+                    </VerticalStackLayout>
+
+                    <!-- Create Company Button -->
+                    <Button Text="Create Company"
+                            Command="{Binding CreateCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            HeightRequest="52"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            CornerRadius="10"
+                            TextColor="White"
+                            BackgroundColor="#2979FF"
+                            Margin="0,8,0,0"/>
+
+                    <!-- Activity Indicator -->
+                    <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                       IsVisible="{Binding IsBusy}"
+                                       Color="#2979FF"
+                                       HorizontalOptions="Center"/>
+
+                    <!-- Secondary: go to login -->
+                    <Button Text="Already have an account? Login"
+                            Command="{Binding GoToLoginCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            HeightRequest="44"
+                            FontSize="14"
+                            TextColor="#90A4AE"
+                            BackgroundColor="Transparent"
+                            BorderColor="Transparent"/>
+
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Footer -->
+            <Label Grid.Row="2"
+                   Text="Offline • Secure • Fast"
+                   FontSize="11" TextColor="#37474F"
+                   HorizontalOptions="Center"
+                   Margin="0,0,0,24"/>
+
+        </Grid>
+    </ScrollView>
+
+</ContentPage>

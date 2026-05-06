@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.SettlementListPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DriverLedger.ViewModels"
+    xmlns:dto="clr-namespace:DriverLedger.DTOs"
+    Title="{Binding Title}" BackgroundColor="#0D1B2A" Shell.NavBarIsVisible="True">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="16" RowSpacing="12">
+
+        <!-- Add Button -->
+        <Button Grid.Row="0" Text="➕  New Settlement" Command="{Binding AddSettlementCommand}" BackgroundColor="#1565C0" TextColor="White" CornerRadius="10" HeightRequest="46" FontAttributes="Bold"/>
+
+        <!-- Search Bar -->
+        <Border Grid.Row="1" BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="10,0">
+            <SearchBar Text="{Binding SearchText}" Placeholder="Search by driver, vehicle or date…" PlaceholderColor="#4A6FA5" TextColor="White" BackgroundColor="Transparent" CancelButtonColor="#4A6FA5"/>
+        </Border>
+
+        <!-- Count Badge -->
+        <Label Grid.Row="2" Text="{Binding SettlementCountLabel}" TextColor="#4A6FA5" FontSize="12" Margin="4,0,0,0"/>
+
+        <!-- Settlement List -->
+        <RefreshView Grid.Row="3" IsRefreshing="{Binding IsBusy}" Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding Settlements}" SelectionMode="None">
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Spacing="12" HorizontalOptions="Center" VerticalOptions="Center" Padding="24">
+                        <Label Text="📊" FontSize="52" HorizontalOptions="Center"/>
+                        <Label Text="No settlements found" TextColor="White" FontSize="17" FontAttributes="Bold" HorizontalOptions="Center"/>
+                        <Label Text="Tap ➕ New Settlement to record today's earnings" TextColor="#4A6FA5" FontSize="13" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="dto:SettlementRecord">
+                        <SwipeView Margin="0,0,0,10">
+                            <!-- Swipe Right → Delete (red) -->
+                            <SwipeView.LeftItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Delete" IconImageSource="trash_icon.png" BackgroundColor="#C62828"
+                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteSettlementCommand}"
+                                               CommandParameter="{Binding .}"/>
+                                </SwipeItems>
+                            </SwipeView.LeftItems>
+                            <!-- Swipe Left ← Edit (blue) -->
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Edit" BackgroundColor="#1565C0"
+                                               Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditSettlementCommand}"
+                                               CommandParameter="{Binding .}"/>
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+
+                            <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 12" Stroke="#1E3A5F" StrokeThickness="1" Padding="16">
+
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.ViewDetailCommand}" CommandParameter="{Binding .}"/>
+                                </Border.GestureRecognizers>
+
+                                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="6" ColumnSpacing="8">
+
+                                    <!-- Row 0: Date + Shift badge -->
+                                    <Label Grid.Row="0" Grid.Column="0" Text="{Binding Date, StringFormat='{0:dd MMM yyyy}'}" TextColor="White" FontSize="15" FontAttributes="Bold"/>
+                                    <Border Grid.Row="0" Grid.Column="1" BackgroundColor="#1E3A5F" StrokeShape="RoundRectangle 8" Stroke="Transparent" Padding="8,3">
+                                        <Label Text="{Binding ShiftType}" TextColor="#90CAF9" FontSize="11" FontAttributes="Bold"/>
+                                    </Border>
+
+                                    <!-- Row 1: Vehicle + Driver -->
+                                    <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" TextColor="#90CAF9" FontSize="13">
+                                        <Label.Text>
+                                            <MultiBinding StringFormat="{}{0}  •  {1}">
+                                                <Binding Path="VehicleNumber"/>
+                                                <Binding Path="DriverName"/>
+                                            </MultiBinding>
+                                        </Label.Text>
+                                    </Label>
+
+                                    <!-- Row 2: Financial summary -->
+                                    <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Spacing="16">
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="Bill" TextColor="#4A6FA5" FontSize="11"/>
+                                            <Label Text="{Binding TotalOperatorBill, StringFormat='₹{0:N0}'}" TextColor="White" FontSize="14" FontAttributes="Bold"/>
+                                        </VerticalStackLayout>
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="Net Haq" TextColor="#4A6FA5" FontSize="11"/>
+                                            <Label Text="{Binding DriverNetHaq, StringFormat='₹{0:N0}'}" TextColor="#FFA726" FontSize="14" FontAttributes="Bold"/>
+                                        </VerticalStackLayout>
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="Drv Pays" TextColor="#4A6FA5" FontSize="11"/>
+                                            <Label Text="{Binding DriverPaysOwner, StringFormat='₹{0:N0}'}" TextColor="#EF5350" FontSize="14" FontAttributes="Bold"/>
+                                        </VerticalStackLayout>
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="Own Pays" TextColor="#4A6FA5" FontSize="11"/>
+                                            <Label Text="{Binding OwnerPaysDriver, StringFormat='₹{0:N0}'}" TextColor="#4CAF50" FontSize="14" FontAttributes="Bold"/>
+                                        </VerticalStackLayout>
+                                    </HorizontalStackLayout>
+                                </Grid>
+                            </Border>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <ActivityIndicator Grid.Row="4" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="#2979FF" HorizontalOptions="Center" Margin="0,8"/>
+    </Grid>
+</ContentPage>

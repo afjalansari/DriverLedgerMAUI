@@ -1,0 +1,22 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<Application x:Class="DriverLedger.App"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:helpers="clr-namespace:DriverLedger.Helpers">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+                <ResourceDictionary Source="Resources/Styles/DashboardStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Global Value Converters -->
+            <helpers:StatusColorConverter x:Key="StatusColorConverter"/>
+            <helpers:NotNullConverter x:Key="NotNullConverter"/>
+            <helpers:NonZeroToBoolConverter x:Key="NonZeroToBoolConverter"/>
+        </ResourceDictionary>
+    </Application.Resources>
+
+</Application>

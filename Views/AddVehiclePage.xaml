@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.AddVehiclePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" Title="{Binding Title}" BackgroundColor="#0D1B2A" Shell.NavBarIsVisible="True">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="16" Padding="20">
+
+            <!-- Vehicle Number -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Vehicle Number *" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <Entry Text="{Binding VehicleNumber}" Placeholder="MH01AB1234" PlaceholderColor="#4A6FA5" TextColor="White" BackgroundColor="Transparent" HeightRequest="48"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Vehicle Model -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Vehicle Model" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <Entry Text="{Binding VehicleModel}" Placeholder="e.g. Maruti Swift" PlaceholderColor="#4A6FA5" TextColor="White" BackgroundColor="Transparent" HeightRequest="48"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Vehicle Type -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Vehicle Type" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <Picker SelectedItem="{Binding VehicleType}" ItemsSource="{Binding VehicleTypeOptions}" TextColor="White" BackgroundColor="Transparent" HeightRequest="48"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Registration Number -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Registration Number" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <Entry Text="{Binding RegistrationNumber}" Placeholder="RC Number" PlaceholderColor="#4A6FA5" TextColor="White" BackgroundColor="Transparent" HeightRequest="48"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Insurance Expiry -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Insurance Expiry Date" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <DatePicker Date="{Binding InsuranceExpiry}" TextColor="White" BackgroundColor="Transparent" HeightRequest="48"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- PUC Expiry -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="PUC Expiry Date" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <DatePicker Date="{Binding PUCExpiry}" TextColor="White" BackgroundColor="Transparent" HeightRequest="48"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Status -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Status" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <Picker SelectedItem="{Binding Status}" ItemsSource="{Binding StatusOptions}" TextColor="White" BackgroundColor="Transparent" HeightRequest="48"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Save -->
+            <Button Text="💾  Save Vehicle" Command="{Binding SaveCommand}" IsEnabled="{Binding IsNotBusy}" BackgroundColor="#1B5E20" TextColor="White" CornerRadius="10" HeightRequest="52" FontAttributes="Bold" Margin="0,8,0,0"/>
+
+            <!-- Cancel -->
+            <Button Text="Cancel" Command="{Binding CancelCommand}" BackgroundColor="#1E3A5F" TextColor="#90CAF9" BorderColor="#2979FF" BorderWidth="1" CornerRadius="10" HeightRequest="48"/>
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="#2979FF" HorizontalOptions="Center"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- DASHBOARD DESIGN TOKENS                                           -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <!-- Background -->
+    <Color x:Key="DashBg">#0D1B2A</Color>
+    <Color x:Key="CardBg">#162032</Color>
+    <Color x:Key="CardStroke">#1E3A5F</Color>
+
+    <!-- Semantic colors -->
+    <Color x:Key="PositiveGreen">#4CAF50</Color>
+    <Color x:Key="PositiveGreenLight">#81C784</Color>
+    <Color x:Key="NegativeRed">#FF5252</Color>
+    <Color x:Key="NegativeRedLight">#EF9A9A</Color>
+    <Color x:Key="CashOrange">#FFA726</Color>
+    <Color x:Key="FuelOrange">#FF7043</Color>
+    <Color x:Key="OwnerBlue">#2979FF</Color>
+    <Color x:Key="OwnerBlueMuted">#64B5F6</Color>
+    <Color x:Key="PurpleLedger">#CE93D8</Color>
+    <Color x:Key="MutedText">#4A6FA5</Color>
+    <Color x:Key="DimText">#37474F</Color>
+    <Color x:Key="DividerColor">#1E3A5F</Color>
+
+    <!-- ── 1. DashboardCard ───────────────────────────────────────────── -->
+    <Style x:Key="DashboardCard" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="#162032"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 14"/>
+        <Setter Property="Stroke" Value="#1E3A5F"/>
+        <Setter Property="Padding" Value="16"/>
+    </Style>
+
+    <!-- ── 2. SectionTitle ─────────────────────────────────────────────── -->
+    <Style x:Key="SectionTitle" TargetType="Label">
+        <Setter Property="TextColor" Value="#4A6FA5"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="Margin" Value="4,16,4,4"/>
+        <Setter Property="CharacterSpacing" Value="1.2"/>
+    </Style>
+
+    <!-- ── 3. PrimaryValueLabel ────────────────────────────────────────── -->
+    <Style x:Key="PrimaryValueLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="24"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+    </Style>
+
+    <!-- ── 4. SecondaryValueLabel ──────────────────────────────────────── -->
+    <Style x:Key="SecondaryValueLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+    </Style>
+
+    <!-- ── 5. CardTitleLabel ───────────────────────────────────────────── -->
+    <Style x:Key="CardTitleLabel" TargetType="Label">
+        <Setter Property="TextColor" Value="#4A6FA5"/>
+        <Setter Property="FontSize" Value="11"/>
+    </Style>
+
+    <!-- ── 6. SmallMutedLabel ─────────────────────────────────────────── -->
+    <Style x:Key="SmallMutedLabel" TargetType="Label">
+        <Setter Property="TextColor" Value="#37474F"/>
+        <Setter Property="FontSize" Value="10"/>
+    </Style>
+
+    <!-- ── 7. ModuleNavCard ────────────────────────────────────────────── -->
+    <Style x:Key="ModuleNavCard" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="#162032"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 14"/>
+        <Setter Property="Stroke" Value="#1E3A5F"/>
+        <Setter Property="Padding" Value="18"/>
+        <Setter Property="MinimumHeightRequest" Value="56"/>
+    </Style>
+
+    <!-- ── 8. SectionDivider ──────────────────────────────────────────── -->
+    <Style x:Key="SectionDivider" TargetType="BoxView">
+        <Setter Property="HeightRequest" Value="1"/>
+        <Setter Property="Color" Value="#1E3A5F"/>
+        <Setter Property="Margin" Value="0,4,0,0"/>
+        <Setter Property="Opacity" Value="0.5"/>
+    </Style>
+
+    <!-- ── Performance grid cards (Today Performance) ─────────────────── -->
+    <Style x:Key="PerfCard" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="#0A1E38"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 14"/>
+        <Setter Property="Stroke" Value="#1E3A5F"/>
+        <Setter Property="Padding" Value="14"/>
+    </Style>
+
+    <!-- ── Settlement grid cards ──────────────────────────────────────── -->
+    <Style x:Key="SettleCard" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="#162032"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 14"/>
+        <Setter Property="Stroke" Value="#1E3A5F"/>
+        <Setter Property="Padding" Value="14"/>
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- NEW STYLES FOR REDESIGNED DASHBOARD                               -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <!-- ── Metric Card (Key Metrics 2×2 grid) ────────────────────────── -->
+    <Style x:Key="MetricCard" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="#162032"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 14"/>
+        <Setter Property="Stroke" Value="#1E3A5F"/>
+        <Setter Property="Padding" Value="16"/>
+    </Style>
+
+    <!-- ── Fleet Overview horizontal card ────────────────────────────── -->
+    <Style x:Key="FleetCard" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="#162032"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 14"/>
+        <Setter Property="Stroke" Value="#1E3A5F"/>
+        <Setter Property="Padding" Value="14,12"/>
+    </Style>
+
+    <!-- ── Today Summary large card ──────────────────────────────────── -->
+    <Style x:Key="SummaryCard" TargetType="Border">
+        <Setter Property="StrokeShape" Value="RoundRectangle 16"/>
+        <Setter Property="Stroke" Value="#1E3A5F"/>
+        <Setter Property="Padding" Value="18"/>
+    </Style>
+
+    <!-- ── Driver Ledger card (blue gradient) ────────────────────────── -->
+    <Style x:Key="LedgerCard" TargetType="Border">
+        <Setter Property="StrokeShape" Value="RoundRectangle 16"/>
+        <Setter Property="Stroke" Value="#2979FF"/>
+        <Setter Property="Padding" Value="18"/>
+    </Style>
+
+    <!-- ── Top Performance small card ────────────────────────────────── -->
+    <Style x:Key="TopPerfCard" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="#162032"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 14"/>
+        <Setter Property="Stroke" Value="#1E3A5F"/>
+        <Setter Property="Padding" Value="14"/>
+    </Style>
+
+    <!-- ── Section Header Label (larger, white) ──────────────────────── -->
+    <Style x:Key="SectionHeaderLabel" TargetType="Label">
+        <Setter Property="TextColor" Value="White"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="VerticalOptions" Value="Center"/>
+    </Style>
+
+    <!-- ── Section "View All" link label ─────────────────────────────── -->
+    <Style x:Key="ViewAllLabel" TargetType="Label">
+        <Setter Property="TextColor" Value="#2979FF"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="VerticalOptions" Value="Center"/>
+    </Style>
+
+    <!-- ── Large metric number ────────────────────────────────────────── -->
+    <Style x:Key="MetricNumberLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="24"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+    </Style>
+
+    <!-- ── Metric card title ──────────────────────────────────────────── -->
+    <Style x:Key="MetricTitleLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="TextColor" Value="#90CAF9"/>
+    </Style>
+
+    <!-- ── Small sub-text ─────────────────────────────────────────────── -->
+    <Style x:Key="MetricSubLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="TextColor" Value="#4A6FA5"/>
+    </Style>
+
+    <!-- ── Bottom nav tab item ────────────────────────────────────────── -->
+    <Style x:Key="NavTabLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="HorizontalOptions" Value="Center"/>
+    </Style>
+
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+    <!-- LEDGER REDESIGN STYLES                                            -->
+    <!-- ══════════════════════════════════════════════════════════════════ -->
+
+    <!-- ── Ledger Detail Card — dark card with subtle blue border ──── -->
+    <Style x:Key="LedgerDetailCard" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="#0D1426"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 18"/>
+        <Setter Property="Stroke" Value="#161F30"/>
+        <Setter Property="StrokeThickness" Value="1.5"/>
+        <Setter Property="Padding" Value="18,16"/>
+    </Style>
+
+    <!-- ── Hindi subtitle label ──────────────────────────────────── -->
+    <Style x:Key="HindiLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="9"/>
+        <Setter Property="TextColor" Value="#3A5570"/>
+    </Style>
+
+    <!-- ── Large Amount Display (for NET SETTLEMENT) ─────────────── -->
+    <Style x:Key="LargeAmountLabel" TargetType="Label">
+        <Setter Property="FontSize" Value="36"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="HorizontalOptions" Value="Center"/>
+    </Style>
+
+    <!-- ── Section Header with Icon ──────────────────────────────── -->
+    <Style x:Key="SectionHeaderIcon" TargetType="Label">
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="TextColor" Value="#566A7F"/>
+    </Style>
+
+    <!-- ── Transaction Row Card ──────────────────────────────────── -->
+    <Style x:Key="TransactionRow" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="#0A0E1A"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 0"/>
+        <Setter Property="Stroke" Value="#111828"/>
+        <Setter Property="StrokeThickness" Value="0.5"/>
+        <Setter Property="Padding" Value="12,11"/>
+    </Style>
+
+    <!-- ── Status Badge (Green — Owner owes driver) ──────────────── -->
+    <Style x:Key="StatusBadgeGreen" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="#0A2A0A"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 8"/>
+        <Setter Property="Padding" Value="8,3"/>
+    </Style>
+
+    <!-- ── Status Badge (Red — Driver owes owner) ────────────────── -->
+    <Style x:Key="StatusBadgeRed" TargetType="Border">
+        <Setter Property="BackgroundColor" Value="#2A0808"/>
+        <Setter Property="StrokeShape" Value="RoundRectangle 8"/>
+        <Setter Property="Padding" Value="8,3"/>
+    </Style>
+
+    <!-- ── Action Button (Advance/Payment) ───────────────────────── -->
+    <Style x:Key="LedgerActionButton" TargetType="Button">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="HeightRequest" Value="46"/>
+        <Setter Property="BorderWidth" Value="1"/>
+    </Style>
+
+    <!-- ── Primary CTA Button ────────────────────────────────────── -->
+    <Style x:Key="PrimaryCTAButton" TargetType="Button">
+        <Setter Property="TextColor" Value="White"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontAttributes" Value="Bold"/>
+        <Setter Property="CornerRadius" Value="14"/>
+        <Setter Property="HeightRequest" Value="52"/>
+    </Style>
+
+</ResourceDictionary>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.DriverListPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:DriverLedger.Models" Title="{Binding Title}" BackgroundColor="#0D1B2A" Shell.NavBarIsVisible="True">
+
+    <Shell.TitleView>
+        <Label Text="🧑‍✈️  Drivers" TextColor="White" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
+    </Shell.TitleView>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Padding="16" RowSpacing="12">
+
+        <!-- Add Button -->
+        <Button Grid.Row="0" Text="➕  Add Driver" Command="{Binding AddDriverCommand}" BackgroundColor="#2979FF" TextColor="White" CornerRadius="10" HeightRequest="46" FontAttributes="Bold"/>
+
+        <!-- Search Bar -->
+        <Border Grid.Row="1" BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="10,0">
+            <SearchBar Text="{Binding SearchText}" Placeholder="Search by name or mobile…" PlaceholderColor="#4A6FA5" TextColor="White" BackgroundColor="Transparent" CancelButtonColor="#4A6FA5"/>
+        </Border>
+
+        <!-- Count Badge -->
+        <Label Grid.Row="2" Text="{Binding DriverCountLabel}" TextColor="#4A6FA5" FontSize="12" Margin="4,0,0,0"/>
+
+        <!-- Driver List -->
+        <RefreshView Grid.Row="3" IsRefreshing="{Binding IsBusy}" Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding Drivers}" SelectionMode="None">
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Spacing="12" HorizontalOptions="Center" VerticalOptions="Center" Padding="24">
+                        <Label Text="🧑‍✈️" FontSize="52" HorizontalOptions="Center"/>
+                        <Label Text="No drivers found" TextColor="White" FontSize="17" FontAttributes="Bold" HorizontalOptions="Center"/>
+                        <Label Text="Tap ➕ Add Driver to get started" TextColor="#4A6FA5" FontSize="13" HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Driver">
+                        <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 12" Stroke="#1E3A5F" StrokeThickness="1" Padding="16" Margin="0,0,0,12">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                    <Label Text="{Binding DriverName}" FontSize="16" FontAttributes="Bold" TextColor="White"/>
+                                    <Label Text="{Binding MobileNumber}" FontSize="13" TextColor="#90CAF9"/>
+                                    <Label Text="{Binding LicenseNumber}" FontSize="12" TextColor="#4A6FA5"/>
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                    <Border BackgroundColor="{Binding Status, Converter={StaticResource StatusColorConverter}}" StrokeShape="RoundRectangle 8" Stroke="Transparent" Padding="8,4">
+                                        <Label Text="{Binding Status}" FontSize="11" TextColor="White" FontAttributes="Bold"/>
+                                    </Border>
+                                    <Button Text="✏️ Edit" Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditDriverCommand}" CommandParameter="{Binding .}" BackgroundColor="#1E3A5F" TextColor="#90CAF9" BorderColor="#2979FF" BorderWidth="1" CornerRadius="8" HeightRequest="34" Padding="10,0" FontSize="12"/>
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+        <ActivityIndicator Grid.Row="4" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="#2979FF" HorizontalOptions="Center" Margin="0,8"/>
+
+    </Grid>
+</ContentPage>

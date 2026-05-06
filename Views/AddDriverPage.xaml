@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.AddDriverPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" Title="{Binding Title}" BackgroundColor="#0D1B2A" Shell.NavBarIsVisible="True">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="16" Padding="20">
+
+            <!-- Driver Name -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Driver Name *" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <Entry Text="{Binding DriverName}" Placeholder="Full name" PlaceholderColor="#4A6FA5" TextColor="White" BackgroundColor="Transparent" HeightRequest="48"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Mobile Number -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Mobile Number *" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <Entry Text="{Binding MobileNumber}" Placeholder="+91 9999 999999" PlaceholderColor="#4A6FA5" TextColor="White" Keyboard="Telephone" BackgroundColor="Transparent" HeightRequest="48"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- License Number -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="License Number" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <Entry Text="{Binding LicenseNumber}" Placeholder="DL-1234567890" PlaceholderColor="#4A6FA5" TextColor="White" BackgroundColor="Transparent" HeightRequest="48"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Address -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Address" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,4">
+                    <Editor Text="{Binding Address}" Placeholder="Enter address" PlaceholderColor="#4A6FA5" TextColor="White" BackgroundColor="Transparent" HeightRequest="80" AutoSize="TextChanges"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Join Date -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Join Date" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <DatePicker Date="{Binding JoinDate}" TextColor="White" BackgroundColor="Transparent" HeightRequest="48"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Status -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Status" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <Picker SelectedItem="{Binding Status}" ItemsSource="{Binding StatusOptions}" TextColor="White" BackgroundColor="Transparent" HeightRequest="48"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Divider -->
+            <BoxView HeightRequest="1" BackgroundColor="#1E3A5F" Margin="0,4"/>
+            <Label Text="CONTRACT SETTINGS" TextColor="#4A6FA5" FontSize="11" FontAttributes="Bold"/>
+            <Label Text="Set how income and CNG expenses are split between driver and owner. Each pair must add up to 100%." TextColor="#4A6FA5" FontSize="12"/>
+
+            <!-- Income Split -->
+            <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 12" Stroke="#1E3A5F" Padding="16,12">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto,*" RowSpacing="10" ColumnSpacing="10">
+
+                    <Label Grid.Row="0" Grid.ColumnSpan="3" Text="Income Split (must = 100%)" TextColor="#90CAF9" FontSize="13" FontAttributes="Bold"/>
+
+                    <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="4">
+                        <Label Text="Driver %" TextColor="#90CAF9" FontSize="12"/>
+                        <Border BackgroundColor="#0D2137" StrokeShape="RoundRectangle 8" Stroke="#2979FF" Padding="10,0">
+                            <Entry Text="{Binding DriverIncomePercent}" Keyboard="Numeric" TextColor="#FFA726" BackgroundColor="Transparent" HeightRequest="44" FontAttributes="Bold"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <Label Grid.Row="1" Grid.Column="1" Text="+" TextColor="#4A6FA5" VerticalOptions="End" HorizontalOptions="Center" FontSize="18" Margin="0,0,0,10"/>
+
+                    <VerticalStackLayout Grid.Row="1" Grid.Column="2" Spacing="4">
+                        <Label Text="Owner %" TextColor="#90CAF9" FontSize="12"/>
+                        <Border BackgroundColor="#0D2137" StrokeShape="RoundRectangle 8" Stroke="#1E3A5F" Padding="10,0">
+                            <Entry Text="{Binding OwnerIncomePercent}" Keyboard="Numeric" TextColor="#2979FF" BackgroundColor="Transparent" HeightRequest="44" IsReadOnly="True"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                </Grid>
+            </Border>
+
+            <!-- CNG Split -->
+            <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 12" Stroke="#1E3A5F" Padding="16,12">
+                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,*" RowSpacing="10" ColumnSpacing="10">
+
+                    <Label Grid.Row="0" Grid.ColumnSpan="3" Text="CNG / Fuel Split (must = 100%)" TextColor="#90CAF9" FontSize="13" FontAttributes="Bold"/>
+
+                    <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="4">
+                        <Label Text="Driver %" TextColor="#90CAF9" FontSize="12"/>
+                        <Border BackgroundColor="#0D2137" StrokeShape="RoundRectangle 8" Stroke="#2979FF" Padding="10,0">
+                            <Entry Text="{Binding DriverCngPercent}" Keyboard="Numeric" TextColor="#FFA726" BackgroundColor="Transparent" HeightRequest="44" FontAttributes="Bold"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <Label Grid.Row="1" Grid.Column="1" Text="+" TextColor="#4A6FA5" VerticalOptions="End" HorizontalOptions="Center" FontSize="18" Margin="0,0,0,10"/>
+
+                    <VerticalStackLayout Grid.Row="1" Grid.Column="2" Spacing="4">
+                        <Label Text="Owner %" TextColor="#90CAF9" FontSize="12"/>
+                        <Border BackgroundColor="#0D2137" StrokeShape="RoundRectangle 8" Stroke="#1E3A5F" Padding="10,0">
+                            <Entry Text="{Binding OwnerCngPercent}" Keyboard="Numeric" TextColor="#2979FF" BackgroundColor="Transparent" HeightRequest="44" IsReadOnly="True"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                </Grid>
+            </Border>
+
+            <!-- Save Button -->
+            <Button Text="💾  Save Driver" Command="{Binding SaveCommand}" IsEnabled="{Binding IsNotBusy}" BackgroundColor="#2979FF" TextColor="White" CornerRadius="10" HeightRequest="52" FontAttributes="Bold" Margin="0,8,0,0"/>
+
+            <!-- Cancel Button -->
+            <Button Text="Cancel" Command="{Binding CancelCommand}" BackgroundColor="#1E3A5F" TextColor="#90CAF9" BorderColor="#2979FF" BorderWidth="1" CornerRadius="10" HeightRequest="48"/>
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="#2979FF" HorizontalOptions="Center"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

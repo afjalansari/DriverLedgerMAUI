@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.CompanyPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#0D1B2A">
+
+    <ScrollView>
+        <Grid RowDefinitions="Auto,*,Auto" Padding="0" MinimumHeightRequest="680">
+
+            <!-- ── Header ── -->
+            <Grid Grid.Row="0" Padding="24,52,24,28">
+                <Grid.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#1B5E20" Offset="0.0"/>
+                        <GradientStop Color="#2E7D32" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Grid.Background>
+                <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                    <Label Text="🏢" FontSize="44" HorizontalOptions="Center"/>
+                    <Label Text="Create Your Company" FontSize="26" FontAttributes="Bold"
+                           TextColor="White" HorizontalOptions="Center"/>
+                    <Label Text="Setup your fleet management account" FontSize="13"
+                           TextColor="#A5D6A7" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- ── Form Card ── -->
+            <Border Grid.Row="1" Margin="24,0,24,0" BackgroundColor="#162032"
+                    StrokeShape="RoundRectangle 20" Stroke="#1B5E20"
+                    StrokeThickness="1" Padding="28,32">
+
+                <VerticalStackLayout Spacing="18">
+
+                    <!-- Company Name -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Company Name *" FontSize="13" TextColor="#A5D6A7"/>
+                        <Border BackgroundColor="#1A2F1A" StrokeShape="RoundRectangle 10"
+                                Stroke="#388E3C" StrokeThickness="1" Padding="14,0">
+                            <Entry Text="{Binding CompanyName}"
+                                   Placeholder="e.g. ABC Cab Services"
+                                   PlaceholderColor="#4A6A4A" TextColor="White"
+                                   ReturnType="Next" HeightRequest="48"
+                                   BackgroundColor="Transparent"
+                                   ReturnCommand="{Binding FocusOwnerNameCommand}"/>
+                        </Border>
+                        <Label Text="{Binding CompanyNameError}"
+                               TextColor="#FF5252" FontSize="12"
+                               IsVisible="{Binding HasCompanyNameError}"/>
+                    </VerticalStackLayout>
+
+                    <!-- Owner Name -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Owner Name *" FontSize="13" TextColor="#A5D6A7"/>
+                        <Border BackgroundColor="#1A2F1A" StrokeShape="RoundRectangle 10"
+                                Stroke="#388E3C" StrokeThickness="1" Padding="14,0">
+                            <Entry x:Name="OwnerNameEntry"
+                                   Text="{Binding OwnerName}"
+                                   Placeholder="Full Name"
+                                   PlaceholderColor="#4A6A4A" TextColor="White"
+                                   ReturnType="Next" HeightRequest="48"
+                                   BackgroundColor="Transparent"
+                                   ReturnCommand="{Binding FocusMobileCommand}"/>
+                        </Border>
+                        <Label Text="{Binding OwnerNameError}"
+                               TextColor="#FF5252" FontSize="12"
+                               IsVisible="{Binding HasOwnerNameError}"/>
+                    </VerticalStackLayout>
+
+                    <!-- Mobile Number -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Mobile Number *" FontSize="13" TextColor="#A5D6A7"/>
+                        <Border BackgroundColor="#1A2F1A" StrokeShape="RoundRectangle 10"
+                                Stroke="#388E3C" StrokeThickness="1" Padding="14,0">
+                            <Entry x:Name="MobileEntry"
+                                   Text="{Binding MobileNumber}"
+                                   Placeholder="+91 9999 999999"
+                                   PlaceholderColor="#4A6A4A" TextColor="White"
+                                   Keyboard="Telephone" ReturnType="Next"
+                                   HeightRequest="48" BackgroundColor="Transparent"
+                                   ReturnCommand="{Binding FocusCityCommand}"/>
+                        </Border>
+                        <Label Text="{Binding MobileNumberError}"
+                               TextColor="#FF5252" FontSize="12"
+                               IsVisible="{Binding HasMobileNumberError}"/>
+                    </VerticalStackLayout>
+
+                    <!-- City -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="City" FontSize="13" TextColor="#A5D6A7"/>
+                        <Border BackgroundColor="#1A2F1A" StrokeShape="RoundRectangle 10"
+                                Stroke="#388E3C" StrokeThickness="1" Padding="14,0">
+                            <Entry x:Name="CityEntry"
+                                   Text="{Binding City}"
+                                   Placeholder="e.g. Mumbai"
+                                   PlaceholderColor="#4A6A4A" TextColor="White"
+                                   ReturnType="Next" HeightRequest="48"
+                                   BackgroundColor="Transparent"
+                                   ReturnCommand="{Binding FocusPasswordCommand}"/>
+                        </Border>
+                        <Label Text="{Binding CityError}"
+                               TextColor="#FF5252" FontSize="12"
+                               IsVisible="{Binding HasCityError}"/>
+                    </VerticalStackLayout>
+
+                    <!-- Divider -->
+                    <BoxView HeightRequest="1" BackgroundColor="#1B3A1B" Margin="0,4"/>
+
+                    <!-- Password -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Password *" FontSize="13" TextColor="#A5D6A7"/>
+                        <Border BackgroundColor="#1A2F1A" StrokeShape="RoundRectangle 10"
+                                Stroke="#388E3C" StrokeThickness="1" Padding="14,0">
+                            <Entry x:Name="PasswordEntry"
+                                   Text="{Binding Password}"
+                                   Placeholder="Min. 8 chars, 1 uppercase, 1 digit"
+                                   PlaceholderColor="#4A6A4A" TextColor="White"
+                                   IsPassword="True" ReturnType="Next"
+                                   HeightRequest="48" BackgroundColor="Transparent"
+                                   ReturnCommand="{Binding FocusConfirmPasswordCommand}"/>
+                        </Border>
+                        <Label Text="{Binding PasswordError}"
+                               TextColor="#FF5252" FontSize="12"
+                               IsVisible="{Binding HasPasswordError}"/>
+                    </VerticalStackLayout>
+
+                    <!-- Confirm Password -->
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Confirm Password *" FontSize="13" TextColor="#A5D6A7"/>
+                        <Border BackgroundColor="#1A2F1A" StrokeShape="RoundRectangle 10"
+                                Stroke="#388E3C" StrokeThickness="1" Padding="14,0">
+                            <Entry x:Name="ConfirmPasswordEntry"
+                                   Text="{Binding ConfirmPassword}"
+                                   Placeholder="Re-enter your password"
+                                   PlaceholderColor="#4A6A4A" TextColor="White"
+                                   IsPassword="True" ReturnType="Done"
+                                   HeightRequest="48" BackgroundColor="Transparent"
+                                   ReturnCommand="{Binding CreateCommand}"/>
+                        </Border>
+                        <Label Text="{Binding ConfirmPasswordError}"
+                               TextColor="#FF5252" FontSize="12"
+                               IsVisible="{Binding HasConfirmPasswordError}"/>
+                    </VerticalStackLayout>
+
+                    <!-- Create Button -->
+                    <Button Text="🚀  Create Company"
+                            Command="{Binding CreateCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            HeightRequest="54" FontSize="16"
+                            FontAttributes="Bold" CornerRadius="12"
+                            TextColor="White" Margin="0,8,0,0">
+                        <Button.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#43A047" Offset="0"/>
+                                <GradientStop Color="#1B5E20" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Button.Background>
+                    </Button>
+
+                    <!-- Already have an account -->
+                    <Label HorizontalOptions="Center" FontSize="13" TextColor="#A5D6A7">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="Already have an account? "/>
+                                <Span Text="Log in"
+                                      TextColor="#66BB6A" FontAttributes="Bold"
+                                      TextDecorations="Underline">
+                                    <Span.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding GoToLoginCommand}"/>
+                                    </Span.GestureRecognizers>
+                                </Span>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+
+                    <!-- Activity Indicator -->
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                                       Color="#43A047" HorizontalOptions="Center"/>
+
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Footer -->
+            <Label Grid.Row="2" Text="* Required fields" FontSize="12"
+                   TextColor="#4A6A4A" HorizontalOptions="Center" Margin="0,16,0,32"/>
+
+        </Grid>
+    </ScrollView>
+
+</ContentPage>

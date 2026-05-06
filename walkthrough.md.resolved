@@ -1,0 +1,89 @@
+# DriverLedger — Build Verification Walkthrough
+
+## ✅ Build Result
+```
+Build succeeded.
+    1 Warning(s)   ← XA0119 (harmless Debug advisory)
+    0 Error(s)
+Time Elapsed 00:08:16
+```
+
+---
+
+## What Was Built
+
+### Project Structure
+
+```
+DriverLedger/
+├── Helpers/
+│   └── AppConstants.cs            ← DatabaseName constant
+├── Models/
+│   └── Company.cs                 ← SQLite table model
+├── Database/
+│   └── DatabaseService.cs         ← Async SQLite service, lazy init
+├── Repositories/
+│   ├── ICompanyRepository.cs      ← Contract
+│   └── CompanyRepository.cs       ← Implementation
+├── ViewModels/
+│   ├── BaseViewModel.cs           ← INotifyPropertyChanged base
+│   ├── LoginViewModel.cs          ← Login + navigation logic
+│   ├── CompanyViewModel.cs        ← Company form + save logic
+│   └── DashboardViewModel.cs      ← Company data loader
+├── Views/
+│   ├── LoginPage.xaml/cs          ← Dark blue themed login
+│   ├── CompanyPage.xaml/cs        ← Green themed creation form
+│   └── DashboardPage.xaml/cs      ← Card-based dashboard
+├── App.xaml / App.xaml.cs         ← DI-injected AppShell + crash guard
+├── AppShell.xaml / .cs            ← Shell routes registered
+├── MauiProgram.cs                 ← Full DI container setup
+└── Platforms/Android/
+    ├── AndroidManifest.xml        ← Cleaned (offline-only, no INTERNET)
+    └── MainApplication.cs         ← Global exception handlers
+```
+
+### Key Architecture Decisions
+
+| Concern | Solution |
+|---------|----------|
+| Offline DB | `sqlite-net-pcl` + `SQLitePCLRaw.bundle_green` |
+| Linker safety | `AndroidLinkMode=SdkOnly` in csproj |
+| XAML inflation | `MauiXamlInflator=SourceGen` + `Runtime` override for resource dicts |
+| DI | Full singleton/transient DI via [MauiProgram.cs](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/MauiProgram.cs) |
+| Crash safety | Global `UnhandledException` + `UnobservedTaskException` handlers |
+| Navigation | Shell routing — [LoginPage](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/Views/LoginPage.xaml.cs#5-16) as root, [CompanyPage](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/Views/CompanyPage.xaml.cs#5-16) + [DashboardPage](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/Views/DashboardPage.xaml.cs#5-22) as named routes |
+| DB init | Pre-flight `Task.Run` before UI loads in [MauiProgram.cs](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/MauiProgram.cs) |
+
+---
+
+## Errors Fixed During Build
+
+| Error | Fix Applied |
+|-------|------------|
+| `CS0103 InitializeComponent` — 7 errors | Added `partial` to all XAML code-behind classes |
+| `MAUIX2002 LetterSpacing` — 2 errors | Removed unsupported `LetterSpacing` from Labels |
+| `Resources_Styles_*.sg.cs` sg.cs errors | Set `Inflator=Runtime` for [Colors.xaml](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/Resources/Styles/Colors.xaml) and [Styles.xaml](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/Resources/Styles/Styles.xaml) |
+| `CS0618 DisplayAlert obsolete` — 10 warnings | Updated all ViewModels to `DisplayAlertAsync` |
+
+---
+
+## App User Flow
+
+```
+Start
+  └─▶ LoginPage (root)
+        ├─▶ [Create Company] → CompanyPage
+        │       └─▶ Fill form → Save → back to LoginPage
+        └─▶ [Login] (email + password) → DashboardPage
+                └─▶ Shows Company Name, Owner Name
+                    ├─▶ Drivers card (Coming Soon)
+                    ├─▶ Vehicles card (Coming Soon)
+                    └─▶ Settlements card (Coming Soon)
+```
+
+---
+
+## 1 Remaining Warning (Non-blocking)
+
+**XA0119** — *Using fast deployment and the linker at the same time is not recommended for Debug.*  
+This is **expected** — the linker is set to `SdkOnly` for Release crash safety. In production Release builds this warning goes away. No action needed.

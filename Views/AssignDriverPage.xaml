@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.AssignDriverPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" Title="{Binding Title}" BackgroundColor="#0D1B2A" Shell.NavBarIsVisible="True">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+
+            <!-- Header -->
+            <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 14" Stroke="#1E3A5F" Padding="20,16">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="🔄  Assign Driver to Vehicle" TextColor="White" FontSize="18" FontAttributes="Bold"/>
+                    <Label Text="One driver per shift per vehicle is allowed." TextColor="#90CAF9" FontSize="13"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Select Vehicle -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Select Vehicle" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <Picker SelectedItem="{Binding SelectedVehicle}" ItemsSource="{Binding Vehicles}" ItemDisplayBinding="{Binding VehicleNumber}" TextColor="White" BackgroundColor="Transparent" HeightRequest="48" Title="Choose vehicle..." TitleColor="#4A6FA5"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Selected Vehicle Info -->
+            <Border IsVisible="{Binding SelectedVehicle, Converter={StaticResource NotNullConverter}}" BackgroundColor="#0D2137" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,12">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="{Binding SelectedVehicle.VehicleNumber}" TextColor="White" FontSize="15" FontAttributes="Bold"/>
+                    <Label Text="{Binding SelectedVehicle.VehicleModel}" TextColor="#90CAF9" FontSize="13"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Select Shift -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Shift Type" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <Picker SelectedItem="{Binding SelectedShift}" ItemsSource="{Binding ShiftOptions}" TextColor="White" BackgroundColor="Transparent" HeightRequest="48"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Select Driver -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Select Driver" TextColor="#90CAF9" FontSize="13"/>
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,0">
+                    <Picker SelectedItem="{Binding SelectedDriver}" ItemsSource="{Binding Drivers}" ItemDisplayBinding="{Binding DriverName}" TextColor="White" BackgroundColor="Transparent" HeightRequest="48" Title="Choose driver..." TitleColor="#4A6FA5"/>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Selected Driver Info -->
+            <Border IsVisible="{Binding SelectedDriver, Converter={StaticResource NotNullConverter}}" BackgroundColor="#0D2137" StrokeShape="RoundRectangle 10" Stroke="#1E3A5F" Padding="14,12">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="{Binding SelectedDriver.DriverName}" TextColor="White" FontSize="15" FontAttributes="Bold"/>
+                    <Label Text="{Binding SelectedDriver.MobileNumber}" TextColor="#90CAF9" FontSize="13"/>
+                    <Label Text="{Binding SelectedDriver.LicenseNumber}" TextColor="#4A6FA5" FontSize="12"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Assign Button -->
+            <Button Text="✅  Assign Driver" Command="{Binding AssignCommand}" IsEnabled="{Binding IsNotBusy}" BackgroundColor="#0D47A1" TextColor="White" CornerRadius="10" HeightRequest="52" FontAttributes="Bold" Margin="0,8,0,0"/>
+
+            <!-- Cancel -->
+            <Button Text="Cancel" Command="{Binding CancelCommand}" BackgroundColor="#1E3A5F" TextColor="#90CAF9" BorderColor="#2979FF" BorderWidth="1" CornerRadius="10" HeightRequest="48"/>
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="#2979FF" HorizontalOptions="Center"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

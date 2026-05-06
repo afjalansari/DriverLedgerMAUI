@@ -1,0 +1,42 @@
+# DriverLedger MAUI App - Task Checklist
+
+## Phase 1: Project Configuration
+- [ ] Update [DriverLedger.csproj](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/DriverLedger.csproj) — add sqlite-net-pcl NuGet, linker-safe settings, Android optimizations
+- [ ] Update [AndroidManifest.xml](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/Platforms/Android/AndroidManifest.xml) — clean up permissions (remove INTERNET/NETWORK since offline-only)
+- [ ] Update [Platforms/Android/MainApplication.cs](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/Platforms/Android/MainApplication.cs) — global exception handler
+
+## Phase 2: Models
+- [ ] Create `Models/Company.cs`
+
+## Phase 3: Database Layer
+- [ ] Create `Database/DatabaseService.cs` — SQLite init, table creation, async CRUD
+
+## Phase 4: Repositories
+- [ ] Create `Repositories/ICompanyRepository.cs`
+- [ ] Create `Repositories/CompanyRepository.cs`
+
+## Phase 5: Helpers
+- [ ] Create `Helpers/AppConstants.cs`
+
+## Phase 6: ViewModels
+- [ ] Create `ViewModels/BaseViewModel.cs`
+- [ ] Create `ViewModels/LoginViewModel.cs`
+- [ ] Create `ViewModels/CompanyViewModel.cs`
+- [ ] Create `ViewModels/DashboardViewModel.cs`
+
+## Phase 7: Views (XAML + Code-behind)
+- [ ] Create `Views/LoginPage.xaml` + `LoginPage.xaml.cs`
+- [ ] Create `Views/CompanyPage.xaml` + `CompanyPage.xaml.cs`
+- [ ] Create `Views/DashboardPage.xaml` + `DashboardPage.xaml.cs`
+
+## Phase 8: App Infrastructure
+- [ ] Update [AppShell.xaml](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/AppShell.xaml) — Shell routes for Login, Company, Dashboard
+- [ ] Update [AppShell.xaml.cs](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/AppShell.xaml.cs) — route registration
+- [ ] Update [App.xaml.cs](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/App.xaml.cs) — crash-safe startup
+- [ ] Update [MauiProgram.cs](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/MauiProgram.cs) — DI registrations, font, global exception handler
+
+## Phase 9: Cleanup
+- [ ] Delete [MainPage.xaml](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/MainPage.xaml) and [MainPage.xaml.cs](file:///g:/Application%20MAUI/New%20folder/Prototype%20DriverLedger/P1/DriverLedger/MainPage.xaml.cs) (replaced by Views)
+
+## Phase 10: Verification
+- [ ] Verify project builds (dotnet build)

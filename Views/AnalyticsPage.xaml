@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.AnalyticsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:helpers="clr-namespace:DriverLedger.Helpers" Title="{Binding Title}" BackgroundColor="#0D1B2A" Shell.NavBarIsVisible="True">
+
+    <Shell.TitleView>
+        <Label Text="📈  Analytics" TextColor="White" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"/>
+    </Shell.TitleView>
+
+    <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding RefreshCommand}">
+        <ScrollView>
+            <VerticalStackLayout Spacing="16" Padding="16">
+
+                <!-- ── Period Label ── -->
+                <Label Text="LAST 7 DAYS SUMMARY" TextColor="#4A6FA5" FontSize="11" FontAttributes="Bold" Margin="4,4,0,0"/>
+
+                <!-- ── Weekly Summary Cards ── -->
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="12">
+
+                    <Border Grid.Row="0" Grid.Column="0" BackgroundColor="#162032" StrokeShape="RoundRectangle 14" Stroke="#1E3A5F" Padding="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="💰 Total Earnings" TextColor="#4A6FA5" FontSize="11"/>
+                            <Label Text="{Binding WeekEarnings, StringFormat='₹{0:N0}'}" TextColor="White" FontSize="20" FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Row="0" Grid.Column="1" BackgroundColor="#162032" StrokeShape="RoundRectangle 14" Stroke="#1E3A5F" Padding="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="⛽ Fuel Cost" TextColor="#4A6FA5" FontSize="11"/>
+                            <Label Text="{Binding WeekFuel, StringFormat='₹{0:N0}'}" TextColor="#F44336" FontSize="20" FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Row="1" Grid.Column="0" BackgroundColor="#162032" StrokeShape="RoundRectangle 14" Stroke="#1E3A5F" Padding="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="🏦 Owner Profit" TextColor="#4A6FA5" FontSize="11"/>
+                            <Label Text="{Binding WeekOwner, StringFormat='₹{0:N0}'}" TextColor="#4CAF50" FontSize="20" FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Row="1" Grid.Column="1" BackgroundColor="#162032" StrokeShape="RoundRectangle 14" Stroke="#1E3A5F" Padding="16">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="📅 Avg / Day" TextColor="#4A6FA5" FontSize="11"/>
+                            <Label Text="{Binding AvgDaily, StringFormat='₹{0:N0}'}" TextColor="#2979FF" FontSize="20" FontAttributes="Bold"/>
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <!-- ── Earnings Chart ── -->
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 14" Stroke="#1E3A5F" Padding="12">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="App Earnings Trend" TextColor="#BBDEFB" FontSize="13" FontAttributes="Bold" Margin="4,0,0,0"/>
+                        <GraphicsView x:Name="EarningsGraphicsView" Drawable="{Binding EarningsChart}" HeightRequest="160" HorizontalOptions="Fill"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ── Fuel Cost Chart ── -->
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 14" Stroke="#1E3A5F" Padding="12">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Fuel Cost Trend" TextColor="#BBDEFB" FontSize="13" FontAttributes="Bold" Margin="4,0,0,0"/>
+                        <GraphicsView x:Name="FuelGraphicsView" Drawable="{Binding FuelChart}" HeightRequest="160" HorizontalOptions="Fill"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ── Owner Profit Chart ── -->
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 14" Stroke="#1E3A5F" Padding="12">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Owner Profit Trend" TextColor="#BBDEFB" FontSize="13" FontAttributes="Bold" Margin="4,0,0,0"/>
+                        <GraphicsView x:Name="OwnerGraphicsView" Drawable="{Binding OwnerChart}" HeightRequest="160" HorizontalOptions="Fill"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ── Settlements Count ── -->
+                <Border BackgroundColor="#1A2744" StrokeShape="RoundRectangle 14" Stroke="#2979FF" Padding="16">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Label Grid.Column="0" Text="📊" FontSize="24" VerticalOptions="Center" Margin="0,0,14,0"/>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="Settlements This Week" TextColor="#BBDEFB" FontSize="13" FontAttributes="Bold"/>
+                            <Label Text="{Binding TotalSettlements, StringFormat='{0} records recorded'}" TextColor="#4A6FA5" FontSize="12"/>
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="#2979FF" HorizontalOptions="Center" Margin="0,8"/>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

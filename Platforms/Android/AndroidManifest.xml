@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.sabiyaco.driverledger">
+
+
+    <!--
+        External storage permissions for BackupService:
+        • WRITE_EXTERNAL_STORAGE — needed on API ≤ 28 to write to Documents/
+        • READ_EXTERNAL_STORAGE  — needed on API ≤ 32 to list/restore backups
+        Both are capped via maxSdkVersion so they don't appear on modern devices.
+        On API 29+ we use MediaStore / public Documents which needs no permission.
+    -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/appicon"
+        android:roundIcon="@mipmap/appicon_round"
+        android:supportsRtl="true"
+        android:label="DriverLedger">
+    </application>
+
+    <!-- No INTERNET permission — fully offline app -->
+
+</manifest>

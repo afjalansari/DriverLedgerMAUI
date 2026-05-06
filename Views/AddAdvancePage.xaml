@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.AddAdvancePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" BackgroundColor="#0D1B2A" Shell.NavBarIsVisible="False">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Padding="20,44,20,24">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#E65100" Offset="0"/>
+                    <GradientStop Color="#BF360C" Offset="1"/>
+                </LinearGradientBrush>
+            </Grid.Background>
+            <Grid ColumnDefinitions="Auto,*">
+                <Button Grid.Column="0" Text="‹" BackgroundColor="Transparent" TextColor="White" FontSize="22" Command="{Binding CancelCommand}" VerticalOptions="Center"/>
+                <VerticalStackLayout Grid.Column="1" Spacing="2" Margin="8,0,0,0">
+                    <Label Text="💰  Add Advance" TextColor="White" FontSize="20" FontAttributes="Bold"/>
+                    <Label Text="Give advance to driver" TextColor="#FFCCBC" FontSize="13"/>
+                </VerticalStackLayout>
+            </Grid>
+        </Grid>
+
+        <!-- Form -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="14" Padding="16,16,16,8">
+
+                <!-- Driver Picker -->
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 12" Stroke="#1E3A5F" Padding="16,12">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="DRIVER" TextColor="#4A6FA5" FontSize="11" FontAttributes="Bold"/>
+                        <Picker Title="Select driver" TitleColor="#4A6FA5" TextColor="White" ItemsSource="{Binding Drivers}" SelectedItem="{Binding SelectedDriver}" ItemDisplayBinding="{Binding DriverName}" BackgroundColor="Transparent"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Amount -->
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 12" Stroke="#1E3A5F" Padding="16,12">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="AMOUNT (₹)" TextColor="#4A6FA5" FontSize="11" FontAttributes="Bold"/>
+                        <Entry Placeholder="e.g. 1000" PlaceholderColor="#4A6FA5" Text="{Binding AmountText}" TextColor="White" Keyboard="Numeric" BackgroundColor="Transparent"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Description -->
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 12" Stroke="#1E3A5F" Padding="16,12">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="DESCRIPTION (optional)" TextColor="#4A6FA5" FontSize="11" FontAttributes="Bold"/>
+                        <Entry Placeholder="e.g. Weekly advance" PlaceholderColor="#4A6FA5" Text="{Binding Description}" TextColor="White" BackgroundColor="Transparent"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Date -->
+                <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 12" Stroke="#1E3A5F" Padding="16,12">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="DATE" TextColor="#4A6FA5" FontSize="11" FontAttributes="Bold"/>
+                        <DatePicker Date="{Binding Date}" TextColor="White" Format="dd MMM yyyy" BackgroundColor="Transparent"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="#2979FF" HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Save Button -->
+        <Button Grid.Row="2" Text="💰  Save Advance" BackgroundColor="#E65100" TextColor="White" FontSize="16" FontAttributes="Bold" CornerRadius="12" HeightRequest="52" Margin="16,8,16,20" Command="{Binding SaveCommand}"/>
+    </Grid>
+</ContentPage>
