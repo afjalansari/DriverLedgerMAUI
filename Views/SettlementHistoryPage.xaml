@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.SettlementHistoryPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DriverLedger.ViewModels"
+    x:DataType="vm:SettlementHistoryViewModel"
+    Title="{Binding Title}"
+    BackgroundColor="#080C18"
+    Shell.NavBarIsVisible="True">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <Color x:Key="BgCard">#0D1426</Color>
+            <Color x:Key="Border">#161F30</Color>
+            <Color x:Key="Muted">#566A7F</Color>
+            <Color x:Key="White">#FFFFFF</Color>
+            <Color x:Key="Green">#4CAF50</Color>
+            <Color x:Key="Orange">#FFA726</Color>
+            <Color x:Key="Red">#EF5350</Color>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="16,12,16,16" RowSpacing="10">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                <Label Text="🕐 Activity Feed" TextColor="{StaticResource White}"
+                       FontSize="20" FontAttributes="Bold"/>
+                <Label Text="{Binding EntryCountLabel}" TextColor="{StaticResource Muted}" FontSize="12"/>
+            </VerticalStackLayout>
+            <Button Grid.Column="1" Text="← Back" Command="{Binding BackCommand}"
+                    BackgroundColor="Transparent" TextColor="#4A90D9" FontSize="13"/>
+        </Grid>
+
+        <!-- Filter Chips -->
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" x:Name="FilterRow">
+            <Button Text="All"
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SetFilterAllCommand}"
+                    BackgroundColor="#1A3560" TextColor="#90CAF9"
+                    CornerRadius="16" Padding="14,6" FontSize="12" FontAttributes="Bold"/>
+            <Button Text="Settlements"
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SetFilterSettlementsCommand}"
+                    BackgroundColor="#1A3560" TextColor="#90CAF9"
+                    CornerRadius="16" Padding="14,6" FontSize="12" FontAttributes="Bold"/>
+            <Button Text="Ledger"
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SetFilterLedgerCommand}"
+                    BackgroundColor="#1A3560" TextColor="#90CAF9"
+                    CornerRadius="16" Padding="14,6" FontSize="12" FontAttributes="Bold"/>
+            <Button Text="Today"
+                    Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.SetFilterTodayCommand}"
+                    BackgroundColor="#1A3560" TextColor="#90CAF9"
+                    CornerRadius="16" Padding="14,6" FontSize="12" FontAttributes="Bold"/>
+        </HorizontalStackLayout>
+
+        <!-- Activity Count Badge -->
+        <Label Grid.Row="2" Text="{Binding EntryCountLabel}" TextColor="{StaticResource Muted}"
+               FontSize="11" Margin="2,0"/>
+
+        <!-- Activity List -->
+        <RefreshView Grid.Row="3" IsRefreshing="{Binding IsRefreshing}" Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding Entries}" SelectionMode="None">
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Spacing="14" HorizontalOptions="Center"
+                                         VerticalOptions="Center" Padding="32">
+                        <Label Text="🕐" FontSize="56" HorizontalOptions="Center"/>
+                        <Label Text="No activity yet" TextColor="{StaticResource White}"
+                               FontSize="17" FontAttributes="Bold" HorizontalOptions="Center"/>
+                        <Label Text="Create or edit a settlement to see activity here"
+                               TextColor="{StaticResource Muted}" FontSize="13"
+                               HorizontalOptions="Center" HorizontalTextAlignment="Center"/>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:AuditLogDisplay">
+                        <Border BackgroundColor="#0D1426" StrokeShape="RoundRectangle 14"
+                                Stroke="#161F30" StrokeThickness="1" Padding="14,12" Margin="0,0,0,8">
+                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="4">
+
+                                <!-- Action Icon -->
+                                <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
+                                        BackgroundColor="#161F30" StrokeShape="RoundRectangle 20"
+                                        WidthRequest="44" HeightRequest="44" VerticalOptions="Center">
+                                    <Label Text="{Binding ActionIcon}" FontSize="20"
+                                           HorizontalOptions="Center" VerticalOptions="Center"/>
+                                </Border>
+
+                                <!-- Row 0: Title line -->
+                                <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,Auto">
+                                    <HorizontalStackLayout Grid.Column="0" Spacing="6">
+                                        <Label Text="{Binding ActionLabel}"
+                                               TextColor="{Binding ActionColor}"
+                                               FontSize="13" FontAttributes="Bold"/>
+                                        <Label Text="{Binding EntityLabel}"
+                                               TextColor="#90CAF9" FontSize="13"/>
+                                        <Label Text="•" TextColor="#566A7F" FontSize="13"/>
+                                        <Label Text="{Binding DriverName}"
+                                               TextColor="#FFFFFF" FontSize="13"/>
+                                    </HorizontalStackLayout>
+                                    <Label Grid.Column="1" Text="{Binding DateDisplay}"
+                                           TextColor="#566A7F" FontSize="10" VerticalOptions="Center"/>
+                                </Grid>
+
+                                <!-- Row 1: Change summary -->
+                                <Label Grid.Row="1" Grid.Column="1"
+                                       Text="{Binding ChangeSummary}"
+                                       TextColor="#78909C" FontSize="11"
+                                       LineBreakMode="TailTruncation" MaxLines="2"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+
+    </Grid>
+</ContentPage>

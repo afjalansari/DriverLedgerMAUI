@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="DriverLedger.Views.DiagnosticsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DriverLedger.ViewModels"
+    x:DataType="vm:DiagnosticsViewModel"
+    Title="{Binding Title}"
+    BackgroundColor="#080C18"
+    Shell.NavBarIsVisible="True">
+
+    <Shell.TitleView>
+        <Label Text="🔧  Diagnostics" TextColor="White" FontSize="18"
+               FontAttributes="Bold" VerticalOptions="Center"/>
+    </Shell.TitleView>
+
+    <RefreshView Command="{Binding RefreshCommand}"
+                 IsRefreshing="{Binding IsRefreshing}"
+                 RefreshColor="#2979FF">
+        <ScrollView>
+            <VerticalStackLayout Spacing="16" Padding="18,16">
+
+                <!-- ── KPI Cards ─────────────────────────────────── -->
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="12">
+
+                    <!-- Schema Version -->
+                    <Border Grid.Row="0" Grid.Column="0"
+                            BackgroundColor="#0D1B2A" StrokeShape="RoundRectangle 14"
+                            Stroke="#1A3560" Padding="16,14">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="📋 Schema" TextColor="#566A7F" FontSize="11" FontAttributes="Bold"/>
+                            <Label Text="{Binding SchemaVersion, StringFormat='v{0}'}"
+                                   TextColor="#4FC3F7" FontSize="26" FontAttributes="Bold"/>
+                            <Label Text="Current Version" TextColor="#3A5570" FontSize="10"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- DB Size -->
+                    <Border Grid.Row="0" Grid.Column="1"
+                            BackgroundColor="#0D1B2A" StrokeShape="RoundRectangle 14"
+                            Stroke="#1A3560" Padding="16,14">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="💾 DB Size" TextColor="#566A7F" FontSize="11" FontAttributes="Bold"/>
+                            <Label Text="{Binding DbSizeText}"
+                                   TextColor="#81C784" FontSize="22" FontAttributes="Bold"/>
+                            <Label Text="SQLite File" TextColor="#3A5570" FontSize="10"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Audit Rows -->
+                    <Border Grid.Row="1" Grid.Column="0"
+                            BackgroundColor="#0D1B2A" StrokeShape="RoundRectangle 14"
+                            Stroke="#1A3560" Padding="16,14">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="📜 Audit Log" TextColor="#566A7F" FontSize="11" FontAttributes="Bold"/>
+                            <Label Text="{Binding AuditRows}"
+                                   TextColor="#FFB74D" FontSize="26" FontAttributes="Bold"/>
+                            <Label Text="Total Events" TextColor="#3A5570" FontSize="10"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- App Version -->
+                    <Border Grid.Row="1" Grid.Column="1"
+                            BackgroundColor="#0D1B2A" StrokeShape="RoundRectangle 14"
+                            Stroke="#1A3560" Padding="16,14">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="📦 App" TextColor="#566A7F" FontSize="11" FontAttributes="Bold"/>
+                            <Label Text="{Binding AppVersion}"
+                                   TextColor="#CE93D8" FontSize="14" FontAttributes="Bold"/>
+                            <Label Text="{Binding LastAuditAt, StringFormat='Last audit: {0}'}"
+                                   TextColor="#3A5570" FontSize="10" LineBreakMode="TailTruncation"/>
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <!-- ── Actions ──────────────────────────────────── -->
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Button Grid.Column="0" Text="📤 Share Report"
+                            Command="{Binding ShareDiagnosticsCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            BackgroundColor="#162032" TextColor="#4FC3F7"
+                            BorderColor="#1A3560" BorderWidth="1"
+                            CornerRadius="12" HeightRequest="44" FontSize="13"/>
+                    <Button Grid.Column="1" Text="🧹 Clear Audit Log"
+                            Command="{Binding ClearAuditLogCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            BackgroundColor="#162032" TextColor="#EF5350"
+                            BorderColor="#3A1010" BorderWidth="1"
+                            CornerRadius="12" HeightRequest="44" FontSize="13"/>
+                </Grid>
+
+                <!-- ── Migration History ──────────────────────────── -->
+                <Label Text="MIGRATION HISTORY" TextColor="#566A7F" FontSize="11"
+                       FontAttributes="Bold" Margin="4,4,0,0"/>
+
+                <Border BackgroundColor="#0D1B2A" StrokeShape="RoundRectangle 14"
+                        Stroke="#1A3560" Padding="0">
+                    <CollectionView ItemsSource="{Binding Migrations}" SelectionMode="None">
+                        <CollectionView.EmptyView>
+                            <Label Text="No migrations applied yet."
+                                   TextColor="#3A5570" FontSize="12" Margin="16,12"/>
+                        </CollectionView.EmptyView>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SchemaVersionDisplay">
+                                <Grid ColumnDefinitions="36,*,Auto" ColumnSpacing="10"
+                                      Padding="16,10">
+                                    <Label Grid.Column="0"
+                                           Text="{Binding Version, StringFormat='v{0}'}"
+                                           TextColor="#4FC3F7" FontSize="13" FontAttributes="Bold"
+                                           VerticalOptions="Center"/>
+                                    <Label Grid.Column="1"
+                                           Text="{Binding Name}"
+                                           TextColor="#B0BEC5" FontSize="12"
+                                           LineBreakMode="TailTruncation"
+                                           VerticalOptions="Center"/>
+                                    <VerticalStackLayout Grid.Column="2" Spacing="2" HorizontalOptions="End">
+                                        <Label Text="{Binding StatusIcon}"
+                                               FontSize="14" HorizontalOptions="End"/>
+                                        <Label Text="{Binding AppliedAt}"
+                                               TextColor="#566A7F" FontSize="9"
+                                               HorizontalOptions="End"/>
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Border>
+
+                <!-- ── Activity Indicator ─────────────────────────── -->
+                <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                   IsVisible="{Binding IsBusy}"
+                                   Color="#2979FF"
+                                   HorizontalOptions="Center" Margin="0,8"/>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

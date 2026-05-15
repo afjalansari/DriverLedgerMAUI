@@ -179,18 +179,13 @@ namespace DriverLedger.ViewModels
 
                 var rawEntries = await _ledgerRepo.GetDriverLedgerAsync(_driverId);
 
-                // BUG-FIX: sort first THEN compute running balance
-                // so each row correctly shows the balance at that point in time
-                var sorted = rawEntries.OrderBy(e => e.Date).ToList();
-                decimal running = 0m;
-                foreach (var raw in sorted)
-                {
-                    running += raw.Debit - raw.Credit;
-                    raw.Balance = Math.Round(running, 2);
-                }
-
-                _allEntries = sorted
+                // L4 fix: the stored Balance field is computed by RebalanceInTransaction
+                // (sorted by Date+CreatedAt). Do NOT recompute here with a different sort
+                // (Date only) — that produces divergent balances when entries share a date.
+                // Trust the DB-stored Balance directly.
+                _allEntries = rawEntries
                     .OrderByDescending(e => e.Date)
+                    .ThenByDescending(e => e.CreatedAt)
                     .Select(e => new LedgerEntryDisplay(e))
                     .ToList();
 
@@ -258,16 +253,21 @@ namespace DriverLedger.ViewModels
                 };
 
                 await _ledgerRepo.AddLedgerEntryAsync(entry);
-                // BUG-5 fix: removed premature IsBusy = false here.
-                // The finally block resets IsBusy correctly after LoadAsync completes.
                 await _dialog.ShowAlertAsync("✅ Clear Ho Gaya", $"{DriverName} ka balance ab zero hai!");
-                IsBusy = false; // release before LoadAsync so its own guard doesn't bail
+                // H1 fix: release IsBusy BEFORE calling LoadAsync so its own guard doesn't
+                // bail out. The finally block below guarantees the reset even on exceptions.
+                IsBusy = false;
                 await LoadAsync();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[DriverLedgerDetailViewModel] ClearBalance error: {ex.Message}");
                 await _dialog.ShowAlertAsync("Error", "Galti aayi. Try karo.");
+            }
+            finally
+            {
+                // H1 fix: always reset IsBusy — protects against any exception before the
+                // manual IsBusy = false in the try block.
                 IsBusy = false;
             }
         }

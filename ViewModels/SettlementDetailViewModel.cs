@@ -17,6 +17,7 @@ namespace DriverLedger.ViewModels
         private readonly INavigationService      _nav;
         private readonly IDialogService          _dialog;
         private readonly IPdfService             _pdf;
+        private readonly IAuditService           _audit;
 
         private int     _settlementId;
         private string  _vehicleNumber = "—";
@@ -28,11 +29,12 @@ namespace DriverLedger.ViewModels
         private decimal _totalCashCollected;
         private decimal _driverShare;
         private decimal _ownerCngShare;
+        private decimal _driverCngShare;     // FIX-0C: was never populated
         private decimal _totalOwnerExpenses;
         private decimal _netDriverPayable;
         private decimal _driverIncomePercent;
         private decimal _totalCng;
-        private decimal _driverFaultChallan;
+        private decimal _driverFaultChallan;  // FIX-0C: now read from Settlement.DriverChallanTotal
 
         private string      _settlementLabel  = "—";
         private string      _aggregatorSummary = "—";
@@ -50,8 +52,10 @@ namespace DriverLedger.ViewModels
         public decimal TotalCashCollected { get => _totalCashCollected;  set => SetProperty(ref _totalCashCollected, value); }
         public decimal DriverShare        { get => _driverShare;         set => SetProperty(ref _driverShare, value); }
         public decimal OwnerCngShare      { get => _ownerCngShare;       set => SetProperty(ref _ownerCngShare, value); }
+        public decimal DriverCngShare     { get => _driverCngShare;      set => SetProperty(ref _driverCngShare, value); }   // FIX-0C
         public decimal TotalOwnerExpenses { get => _totalOwnerExpenses;  set => SetProperty(ref _totalOwnerExpenses, value); }
         public decimal NetDriverPayable   { get => _netDriverPayable;    set => SetProperty(ref _netDriverPayable, value); }
+        public decimal DriverChallanTotal { get => _driverFaultChallan;  set => SetProperty(ref _driverFaultChallan, value); } // FIX-0C
 
         public decimal DriverIncomePercent { get => _driverIncomePercent; set => SetProperty(ref _driverIncomePercent, value); }
         public decimal TotalCNG            { get => _totalCng;            set => SetProperty(ref _totalCng, value); }
@@ -62,12 +66,25 @@ namespace DriverLedger.ViewModels
         public string SettlementLabel   { get => _settlementLabel;   set => SetProperty(ref _settlementLabel, value); }
         public string AggregatorSummary { get => _aggregatorSummary; set => SetProperty(ref _aggregatorSummary, value); }
 
+        // ── Phase 7: Audit History Drawer ─────────────────────────────────────
+        private bool _isHistoryVisible;
+        public bool IsHistoryVisible
+        {
+            get => _isHistoryVisible;
+            set { SetProperty(ref _isHistoryVisible, value); OnPropertyChanged(nameof(HistoryToggleLabel)); }
+        }
+        public string HistoryToggleLabel => IsHistoryVisible ? "▲ Hide History" : "📋 Show History";
+
+        public System.Collections.ObjectModel.ObservableCollection<AuditLogDisplay>
+            AuditHistory { get; } = new();
+
         // ── Commands ───────────────────────────────────────────────
         public ICommand ShareCommand       { get; }
         public ICommand DownloadPdfCommand { get; }
         public ICommand EditCommand        { get; }
         public ICommand DeleteCommand      { get; }
         public ICommand BackCommand        { get; }
+        public ICommand ShowHistoryCommand  { get; }
 
         public SettlementDetailViewModel(
             ISettlementRepository   settlementRepo,
@@ -77,7 +94,8 @@ namespace DriverLedger.ViewModels
             IUnitOfWork             uow,
             INavigationService      nav,
             IDialogService          dialog,
-            IPdfService             pdf)
+            IPdfService             pdf,
+            IAuditService           audit)
         {
             _settlementRepo = settlementRepo ?? throw new ArgumentNullException(nameof(settlementRepo));
             _vehicleRepo    = vehicleRepo    ?? throw new ArgumentNullException(nameof(vehicleRepo));
@@ -87,6 +105,7 @@ namespace DriverLedger.ViewModels
             _nav            = nav            ?? throw new ArgumentNullException(nameof(nav));
             _dialog         = dialog         ?? throw new ArgumentNullException(nameof(dialog));
             _pdf            = pdf            ?? throw new ArgumentNullException(nameof(pdf));
+            _audit          = audit          ?? throw new ArgumentNullException(nameof(audit));
             Title           = "Settlement";
 
             ShareCommand       = new Command(async () => await OnShareAsync());
@@ -96,8 +115,9 @@ namespace DriverLedger.ViewModels
                 if (_settlementId > 0)
                     await _nav.GoToAsync($"{nameof(Views.SettlementEntryPage)}?editId={_settlementId}");
             }, () => !IsBusy);
-            DeleteCommand = new Command(async () => await OnDeleteAsync(), () => !IsBusy);
-            BackCommand   = new Command(async () => await _nav.GoBackAsync());
+            DeleteCommand      = new Command(async () => await OnDeleteAsync(), () => !IsBusy);
+            BackCommand        = new Command(async () => await _nav.GoBackAsync());
+            ShowHistoryCommand = new Command(async () => await OnShowHistoryAsync());
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -111,6 +131,28 @@ namespace DriverLedger.ViewModels
             if (EditCommand is Command e) e.ChangeCanExecute();
             try
             {
+                // M5 fix: reset display state at the start so that if this method throws
+                // before writing new data (e.g., VM instance reused for a different settlement),
+                // stale values from the previous settlement are never displayed.
+                VehicleNumber      = "—";
+                DriverName         = "—";
+                ShiftType          = "—";
+                DateText           = "—";
+                TotalIncome        = 0m;
+                TotalCashCollected = 0m;
+                DriverShare        = 0m;
+                OwnerCngShare      = 0m;
+                DriverCngShare     = 0m;
+                TotalOwnerExpenses = 0m;
+                NetDriverPayable   = 0m;
+                DriverChallanTotal = 0m;
+                TotalCNG           = 0m;
+                AggregatorSummary  = "—";
+                SettlementLabel    = "—";
+                _driverFaultChallan = 0m;
+                OnPropertyChanged(nameof(HasOwnerExpenses));
+                OnPropertyChanged(nameof(HasDriverChallan));
+
                 _settlement = await _settlementRepo.GetSettlementByIdAsync(id);
                 // BUG-6 fix: don't silently show a blank page — tell the user and go back.
                 if (_settlement is null)
@@ -148,12 +190,16 @@ namespace DriverLedger.ViewModels
                 TotalCNG            = _settlement.ExpenseItems
                     .Where(e => e.Type == ExpenseType.CNG)
                     .Sum(e => e.Amount);
-                // Note: DriverChallan has no dedicated ExpenseType in the current model;
-                // challans are not stored in ExpenseItems, so _driverFaultChallan stays 0.
-                _driverFaultChallan = 0m;
+
+                // FIX-0C: populate from the Settlement fields written by SettlementCalculator (BUG-2 fix).
+                // Previously hardcoded to 0m — the HasDriverChallan computed property was always false.
+                _driverFaultChallan = _settlement.DriverChallanTotal;
+                DriverCngShare      = _settlement.DriverCngShare;
 
                 OnPropertyChanged(nameof(HasOwnerExpenses));
                 OnPropertyChanged(nameof(HasDriverChallan));
+                OnPropertyChanged(nameof(DriverChallanTotal));
+                OnPropertyChanged(nameof(DriverCngShare));
 
                 // Build aggregator summary
                 if (_settlement.PlatformIncomes != null)
@@ -245,6 +291,8 @@ namespace DriverLedger.ViewModels
 
         private string BuildShareText()
         {
+            if (_settlement is null) return string.Empty;
+
             var sb = new System.Text.StringBuilder();
 
             sb.AppendLine("🚗 *Daily Settlement Report*");
@@ -255,44 +303,89 @@ namespace DriverLedger.ViewModels
             sb.AppendLine($"🔄 *Shift:*   {ShiftType}");
             sb.AppendLine();
 
+            // ── 1. Platform Income ─────────────────────────────────────────
             sb.AppendLine("📱 *Operator Bill (Total Kamai)*");
             sb.AppendLine("─────────────────────");
-            if (!string.IsNullOrWhiteSpace(AggregatorSummary) && AggregatorSummary != "—")
+            if (_settlement.PlatformIncomes is { Count: > 0 })
             {
-                foreach (var part in AggregatorSummary.Split("  •  ", StringSplitOptions.RemoveEmptyEntries))
-                    sb.AppendLine($"  • {part.Trim()}");
+                foreach (var pi in _settlement.PlatformIncomes)
+                    sb.AppendLine($"  • {pi.PlatformName}: Bill ₹{pi.OperatorBill:N0}  |  Cash ₹{pi.CashCollected:N0}");
             }
-            sb.AppendLine($"  *Total Bill    : ₹{TotalIncome:N0}*");
-            sb.AppendLine($"  Cash Collected : ₹{TotalCashCollected:N0}");
+            sb.AppendLine($"  *Total Bill      : ₹{TotalIncome:N0}*");
+            sb.AppendLine($"  Cash Collected   : ₹{TotalCashCollected:N0}");
             sb.AppendLine();
 
-            sb.AppendLine("💰 *Driver ka Hissa (Driver Share)*");
-            sb.AppendLine("─────────────────────");
-            sb.AppendLine($"  Driver Share : ₹{DriverShare:N0}");
-            sb.AppendLine();
+            // ── 2. Driver Share ────────────────────────────────────────────
+            if (_settlement.DriverTypeSnapshot != Models.DriverType.SelfDriven)
+            {
+                sb.AppendLine("💰 *Driver ka Hissa (Driver Share)*");
+                sb.AppendLine("─────────────────────");
+                var pct = TotalIncome > 0 ? Math.Round(DriverShare / TotalIncome * 100, 0) : 0m;
+                sb.AppendLine($"  Percentage       : {pct}%");
+                sb.AppendLine($"  Driver Share     : ₹{DriverShare:N0}");
+                sb.AppendLine();
+            }
 
-            sb.AppendLine("⛽ *Owner CNG Share (Refund)*");
-            sb.AppendLine("─────────────────────");
-            sb.AppendLine($"  Owner CNG Share  : ₹{OwnerCngShare:N0}");
+            // ── 3. CNG Split ───────────────────────────────────────────────
+            var totalCng = _settlement.DriverCngShare + _settlement.OwnerCngShare;
+            if (totalCng > 0)
+            {
+                sb.AppendLine("⛽ *CNG / Fuel Split*");
+                sb.AppendLine("─────────────────────");
+                sb.AppendLine($"  Total CNG        : ₹{totalCng:N0}");
+                sb.AppendLine($"  Owner Share      : ₹{OwnerCngShare:N0}  (refund to driver)");
+                sb.AppendLine($"  Driver Share     : ₹{DriverCngShare:N0}  (driver bears)");
+                sb.AppendLine();
+            }
+
+            // ── 4. Owner Expenses ──────────────────────────────────────────
             if (TotalOwnerExpenses > 0)
-                sb.AppendLine($"  Other Expenses   : ₹{TotalOwnerExpenses:N0}");
+            {
+                sb.AppendLine("🧾 *Owner Expenses (Toll / Parking / Misc)*");
+                sb.AppendLine("─────────────────────");
+                sb.AppendLine($"  Owner Expenses   : ₹{TotalOwnerExpenses:N0}");
+                sb.AppendLine();
+            }
+
+            // ── 5. Driver Challan (if applicable) ─────────────────────────
+            if (DriverChallanTotal > 0)
+            {
+                sb.AppendLine("⚠️ *Driver-Fault Challan*");
+                sb.AppendLine("─────────────────────");
+                sb.AppendLine($"  Challan Amount   : ₹{DriverChallanTotal:N0}  (deducted from driver haq)");
+                sb.AppendLine();
+            }
+
+            // ── 6. Formula Arithmetic (for dispute resolution) ────────────
+            sb.AppendLine("🧮 *Hisaab Kaise Hua (Formula)*");
+            sb.AppendLine("─────────────────────");
+            sb.AppendLine($"  ₹{DriverShare:N0}  (share)");
+            if (DriverChallanTotal > 0)
+                sb.AppendLine($"  − ₹{DriverChallanTotal:N0}  (challan)");
+            sb.AppendLine($"  − ₹{TotalCashCollected:N0}  (cash already liya)");
+            if (OwnerCngShare > 0)
+                sb.AppendLine($"  + ₹{OwnerCngShare:N0}  (CNG refund)");
+            if (TotalOwnerExpenses > 0)
+                sb.AppendLine($"  + ₹{TotalOwnerExpenses:N0}  (kharcha refund)");
+            sb.AppendLine($"  = ₹{NetDriverPayable:N0}");
             sb.AppendLine();
 
-            // ── FINAL RESULT (the only thing that matters) ──
+            // ── 7. Final Result ────────────────────────────────────────────
             sb.AppendLine("━━━━━━━━━━━━━━━━━━━━━━━━");
             var net = NetDriverPayable;
             if (net > 0)
-                sb.AppendLine($"💸 *Owner pays Driver : ₹{net:N0}*  (Driver ko milega ✓)");
+                sb.AppendLine($"💸 *Owner pays Driver : ₹{net:N0}*  ✓  (Driver ko milega)");
             else if (net < 0)
                 sb.AppendLine($"✅ *Driver pays Owner : ₹{Math.Abs(net):N0}*  (Driver ko dena hai)");
             else
                 sb.AppendLine("✅ *Hisaab Barabar — koi lena dena nahi*");
 
             sb.AppendLine("━━━━━━━━━━━━━━━━━━━━━━━━");
-            sb.Append($"_Sent via DriverLedger • {DateTime.Now:dd MMM yyyy, hh:mm tt}_");
+            sb.Append($"_Sent via DriverLedger v{_settlement.CalculatorVersion} • {DateTime.Now:dd MMM yyyy, hh:mm tt}_");
 
             return sb.ToString();
         }
+
 
         // ══════════════════════════════════════════════════════════════════
         //  Delete
@@ -332,6 +425,33 @@ namespace DriverLedger.ViewModels
                 if (DeleteCommand is Command deleteCmd) deleteCmd.ChangeCanExecute();
                 if (EditCommand is Command editCmd) editCmd.ChangeCanExecute();
             }
+        }
+
+        // ── Phase 7: History Drawer ──────────────────────────────────────────
+
+        private async Task OnShowHistoryAsync()
+        {
+            // Toggle visibility — if already open, just close
+            if (IsHistoryVisible) { IsHistoryVisible = false; return; }
+
+            // Lazy-load on first open
+            if (AuditHistory.Count == 0 && _settlementId > 0)
+            {
+                try
+                {
+                    var rows = await _audit.GetForEntityAsync(
+                        AuditEntities.Settlement, _settlementId);
+                    foreach (var r in rows)
+                        AuditHistory.Add(new AuditLogDisplay(r));
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[SettlementDetailViewModel] History load error: {ex.Message}");
+                }
+            }
+
+            IsHistoryVisible = true;
         }
     }
 }

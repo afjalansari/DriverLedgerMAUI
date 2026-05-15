@@ -34,6 +34,22 @@ namespace DriverLedger
             // Phase 6 — Analytics & Settings
             Routing.RegisterRoute(nameof(AnalyticsPage), typeof(AnalyticsPage));
             Routing.RegisterRoute(nameof(SettingsPage),  typeof(SettingsPage));
+
+            // Phase 7 — Audit & History
+            Routing.RegisterRoute(nameof(SettlementHistoryPage), typeof(SettlementHistoryPage));
+
+            // Phase 8 — Diagnostics
+            Routing.RegisterRoute(nameof(DiagnosticsPage), typeof(DiagnosticsPage));
+        }
+
+        private async void OnLogoutClicked(object? sender, EventArgs e)
+        {
+            bool confirmed = await DisplayAlertAsync("Logout", "Are you sure you want to logout?", "Logout", "Cancel");
+            if (confirmed)
+            {
+                FlyoutIsPresented = false;
+                await Shell.Current.GoToAsync("//LoginPage");
+            }
         }
     }
 }

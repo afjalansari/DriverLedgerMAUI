@@ -1,38 +1,60 @@
 using DriverLedger.Database;
 using DriverLedger.Models;
+using DriverLedger.Services;
 
 namespace DriverLedger.Repositories
 {
     public class DriverLedgerRepository : IDriverLedgerRepository
     {
         private readonly DatabaseService _db;
+        private readonly IAuditService   _audit;
 
-        public DriverLedgerRepository(DatabaseService db) => _db = db;
+        public DriverLedgerRepository(DatabaseService db, IAuditService audit)
+        {
+            _db    = db    ?? throw new ArgumentNullException(nameof(db));
+            _audit = audit ?? throw new ArgumentNullException(nameof(audit));
+        }
 
         /// <summary>
         /// Adds a new ledger entry, computing the running balance automatically.
         /// Debit = money owed to driver (increases balance).
         /// Credit = money received from driver (decreases balance).
+        /// Phase 7: writes an AuditLog row after successful insert.
         /// </summary>
         public async Task<int> AddLedgerEntryAsync(DriverLedgerEntry entry)
         {
             // Compute running balance from the last entry for this driver
             var currentBalance = await GetDriverBalanceAsync(entry.DriverId);
-            entry.Balance  = currentBalance + entry.Debit - entry.Credit;
+            entry.Balance   = currentBalance + entry.Debit - entry.Credit;
             entry.CreatedAt = DateTime.UtcNow;
 
-            return await _db.InsertAsync(entry);
+            var result = await _db.InsertAsync(entry);
+
+            // Phase 7 — Audit (non-fatal)
+            _ = _audit.LogAsync(
+                entityType:    AuditEntities.LedgerEntry,
+                entityId:      entry.Id,
+                action:        AuditActions.Create,
+                driverId:      entry.DriverId,
+                driverName:    string.Empty,   // driver name resolved by caller context
+                changeSummary: BuildLedgerSummary(entry, AuditActions.Create));
+
+            return result;
         }
 
         /// <summary>All ledger entries for a driver, ordered by date then CreatedAt ascending.</summary>
         public async Task<List<DriverLedgerEntry>> GetDriverLedgerAsync(int driverId)
         {
-            var all = await _db.GetAllAsync<DriverLedgerEntry>();
-            return all
-                .Where(e => e.DriverId == driverId)
-                .OrderBy(e => e.Date)
-                .ThenBy(e => e.CreatedAt)
-                .ToList();
+            // P5-1 fix: query through the raw connection so the idx_ledger_driver_date
+            // composite index (DriverId, Date) created in Migration_003 is used.
+            var conn = await _db.GetRawConnectionAsync();
+            return await Task.Run(() =>
+                conn.Table<DriverLedgerEntry>()
+                    .Where(e => e.DriverId == driverId)
+                    .ToList()
+                    .OrderBy(e => e.Date)
+                    .ThenBy(e => e.CreatedAt)
+                    .ToList());
         }
 
         /// <summary>
@@ -55,7 +77,9 @@ namespace DriverLedger.Repositories
         /// </summary>
         public async Task<Dictionary<int, decimal>> GetAllDriverBalancesAsync()
         {
-            var all = await _db.GetAllAsync<DriverLedgerEntry>();
+            // P5-3 fix: use raw connection — DriverId index is hit during the sequential read.
+            var conn = await _db.GetRawConnectionAsync();
+            var all  = await Task.Run(() => conn.Table<DriverLedgerEntry>().ToList());
             return all
                 .GroupBy(e => e.DriverId)
                 .ToDictionary(
@@ -67,7 +91,7 @@ namespace DriverLedger.Repositories
         /// <summary>Ledger history between two dates (inclusive) for a driver.</summary>
         public async Task<List<DriverLedgerEntry>> GetLedgerHistoryAsync(int driverId, DateTime from, DateTime to)
         {
-            var all = await GetDriverLedgerAsync(driverId);
+            var all      = await GetDriverLedgerAsync(driverId);
             var fromDate = from.Date;
             var toDate   = to.Date;
             return all
@@ -80,28 +104,68 @@ namespace DriverLedger.Repositories
 
         public async Task<int> UpdateLedgerEntryAsync(DriverLedgerEntry entry)
         {
-            return await _db.UpdateAsync(entry);
+            var result = await _db.UpdateAsync(entry);
+
+            // Phase 7 — Audit
+            _ = _audit.LogAsync(
+                entityType:    AuditEntities.LedgerEntry,
+                entityId:      entry.Id,
+                action:        AuditActions.Update,
+                driverId:      entry.DriverId,
+                driverName:    string.Empty,
+                changeSummary: BuildLedgerSummary(entry, AuditActions.Update));
+
+            return result;
         }
 
         public async Task<int> DeleteLedgerEntryAsync(DriverLedgerEntry entry)
         {
-            return await _db.DeleteAsync(entry);
+            var summary = BuildLedgerSummary(entry, AuditActions.Delete);
+            var result  = await _db.DeleteAsync(entry);
+
+            // Phase 7 — Audit (capture summary before delete)
+            _ = _audit.LogAsync(
+                entityType:    AuditEntities.LedgerEntry,
+                entityId:      entry.Id,
+                action:        AuditActions.Delete,
+                driverId:      entry.DriverId,
+                driverName:    string.Empty,
+                changeSummary: summary);
+
+            return result;
         }
 
         /// <inheritdoc />
         public async Task RebalanceDriverLedgerAsync(int driverId)
         {
-            // Load all remaining entries for this driver in chronological order
+            // P5-4 fix: wrap all N Update calls in a single RunInTransaction so the
+            // rebalance is atomic and commits in one fsync instead of N separate ones.
             var entries = await GetDriverLedgerAsync(driverId); // already sorted ASC
-
-            decimal running = 0m;
-            foreach (var e in entries)
+            var conn    = await _db.GetRawConnectionAsync();
+            await Task.Run(() =>
             {
-                running += e.Debit - e.Credit;
-                e.Balance = Math.Round(running, 2);
-                await _db.UpdateAsync(e);
-            }
+                conn.RunInTransaction(() =>
+                {
+                    decimal running = 0m;
+                    foreach (var e in entries)
+                    {
+                        running   += e.Debit - e.Credit;
+                        e.Balance  = Math.Round(running, 2);
+                        conn.Update(e);
+                    }
+                });
+            });
+        }
+
+        // ── Audit Summary Builder ────────────────────────────────────────────
+
+        private static string BuildLedgerSummary(DriverLedgerEntry e, string action)
+        {
+            var direction = e.Debit > 0
+                ? $"Debit ₹{e.Debit:N0}"
+                : $"Credit ₹{e.Credit:N0}";
+            return $"{e.TransactionType} {action.ToLower()}d — {direction} " +
+                   $"({e.Date.ToLocalTime():dd MMM yyyy}) — {e.Description}";
         }
     }
 }
-

@@ -1,0 +1,385 @@
+# DriverLedger — Production Hardening Plan (7 Phases)
+
+## What Already Exists
+
+| Component | State | Gap |
+|-----------|-------|-----|
+| `BackupService` | Plain file copy, no encryption | Full re-implementation needed |
+| `PdfService` | Settlement receipt ✅, Monthly report throws `NotSupportedException` | 3 more doc types + monthly |
+| `Settlement` model | No hash / revision fields | Migration_007 needed |
+| `MainApplication` | Logs to `Debug.WriteLine` only | Needs file-based crash sink |
+| Build scripts | None | Create `scripts/` |
+| Security | No `FLAG_SECURE`, no root detection | Hardening pass |
+
+---
+
+## Execution Order (by impact / risk)
+
+```
+Phase 4  → Crash logging (zero schema risk, immediate value)
+Phase 5  → Build scripts (zero code risk)
+Phase 7  → Security quick-wins (FLAG_SECURE, root warn)
+Phase 2  → Encrypted backup (new service + migration)
+Phase 3  → Immutable accounting (new columns + migration)
+Phase 6  → PDF engine (monthly report + 3 new docs)
+Phase 1  → OEM device hardening (code fixes, no schema)
+```
+
+---
+
+## Phase 4 — Local Crash Logging
+
+> **Risk: None** | **Schema change: No** | **Migrations: No**
+
+### New Files
+
+#### [NEW] `Services/Diagnostics/CrashLogService.cs`
+Singleton. Writes structured crash reports to:
+```
+FileSystem.AppDataDirectory/Logs/crash_yyyyMMdd_HHmmss.log
+```
+- Captures: exception type, message, inner chain, stack trace, page name, app version, migration schema version, Android API level, OEM manufacturer/model, timestamp UTC
+- Log rotation: deletes files older than 30 days on startup
+- Max 50 files cap (never fills storage)
+- Thread-safe via `SemaphoreSlim`
+- NEVER throws — all failures swallowed and logged to `Debug.WriteLine`
+
+#### [NEW] `Services/Diagnostics/ICrashLogService.cs`
+```csharp
+Task LogCrashAsync(Exception ex, string context = "");
+Task<IReadOnlyList<string>> GetLogFilesAsync();
+Task<string> ReadLogAsync(string filePath);
+Task PurgeLogs();
+```
+
+### Modified Files
+
+#### [MODIFY] `Platforms/Android/MainApplication.cs`
+Wire both exception hooks to `CrashLogService` instead of `Debug.WriteLine`:
+```csharp
+AppDomain.CurrentDomain.UnhandledException += async (_, args) => {
+    var ex = args.ExceptionObject as Exception;
+    await _crashLog.LogCrashAsync(ex, "AppDomain.UnhandledException");
+};
+TaskScheduler.UnobservedTaskException += async (_, args) => {
+    await _crashLog.LogCrashAsync(args.Exception, "TaskScheduler.UnobservedTaskException");
+    args.SetObserved();
+};
+```
+
+> [!IMPORTANT]
+> `CrashLogService` must be resolved from a static accessor (not DI) because `MainApplication` is constructed before the DI container is built. Use a static `CrashLogService.Instance` initialized before MAUI app.
+
+#### [MODIFY] `ViewModels/DiagnosticsViewModel.cs`
+Already exists — add log file viewer, purge button, share log file.
+
+#### [MODIFY] `MauiProgram.cs`
+Register `CrashLogService` as Singleton first, before any other registration.
+
+---
+
+## Phase 5 — Build & Release Automation
+
+> **Risk: None** | **Schema change: No**
+
+### New Files
+
+```
+scripts/
+  clean-build.ps1      — Remove obj/ bin/ from both projects
+  build-release.ps1    — dotnet publish + zipalign + apksigner sign
+  verify-apk.ps1       — apksigner verify + ABI check + size report
+  install-device.ps1   — adb uninstall + adb install + adb logcat filter
+```
+
+Each script:
+- Validates prerequisites (JDK 21, Android SDK, keystore file)
+- Reads keystore path/alias from `build.env` (gitignored)
+- Exits with non-zero code on any failure
+- Prints a timestamped summary at the end
+
+---
+
+## Phase 7 — Security Hardening (Quick Wins)
+
+> **Risk: Low** | **Schema change: No**
+
+### Files
+
+#### [MODIFY] `Platforms/Android/MainActivity.cs`
+Add `Window.SetFlags(WindowManagerFlags.Secure, WindowManagerFlags.Secure)` in `OnCreate` — prevents screenshots and screen recording of sensitive financial data.
+
+#### [NEW] `Services/Security/SecurityService.cs`
+- **Root detection:** Check for `/system/app/Superuser.apk`, `su` binary, test-keys build tag. On detection: show advisory (NOT block — some legitimate users have rooted devices)
+- **Clipboard restriction:** Override paste to block on PIN entry fields
+- **Temp file cleanup:** `SecureDelete()` — overwrite temp export files with zeros before deletion
+
+#### [MODIFY] `ViewModels/DiagnosticsViewModel.cs`
+Expose `IsDeviceRooted` property from `SecurityService`.
+
+---
+
+## Phase 2 — Encrypted Backup System
+
+> **Risk: Medium** | **Schema change: Yes (BackupLog table)**
+
+### Architecture Decision
+The existing `DatabaseBackupService` is a plain file copy. Replace the restore path entirely; keep the backup path but add an encrypted wrapper.
+
+**Encryption:** AES-256-GCM
+- 256-bit key derived from owner company name + app install ID (PBKDF2, 100k iterations, SHA-256)
+- 12-byte random IV per backup
+- 128-bit GCM authentication tag (integrity built-in)
+- No external keystore dependency — works fully offline
+
+**Why not AES-CBC?** GCM provides authenticated encryption — corrupt/tampered backup files are rejected before any data is touched, avoiding partial restore scenarios.
+
+### Backup File Format
+```
+[4 bytes]  Magic: 0x444C424B ("DLBK")
+[4 bytes]  Format version: 1
+[32 bytes] PBKDF2 salt
+[12 bytes] GCM IV
+[4 bytes]  Manifest JSON length
+[N bytes]  Manifest JSON (plaintext — for listing without decryption)
+[4 bytes]  Payload length
+[N bytes]  AES-256-GCM encrypted SQLite bytes
+[16 bytes] GCM authentication tag
+```
+
+### New Files
+
+#### [NEW] `Services/Backup/SecureBackupService.cs`
+- Wraps existing checkpoint logic
+- Encrypts DB file bytes with AES-256-GCM
+- Writes custom binary format above
+- Writes `BackupManifest` as plaintext header
+- Files named: `DriverLedger_secure_yyyyMMdd_HHmmss.dlbk`
+
+#### [NEW] `Services/Backup/SecureRestoreService.cs`
+**Atomic restore pipeline:**
+1. Read and validate magic bytes
+2. Decrypt into `restore_candidate.db` (temp file)
+3. Open temp DB, verify schema version matches current
+4. Run `PRAGMA integrity_check` on temp DB
+5. Verify `BackupManifest.SettlementCount` against actual table count
+6. Only on all checks passing: `CloseAsync()` + swap files
+7. On any failure: delete temp file, leave live DB untouched
+
+#### [NEW] `Models/BackupManifest.cs`
+```csharp
+public class BackupManifest {
+    public int    FormatVersion       { get; set; }
+    public string AppVersion          { get; set; }
+    public int    SchemaVersion       { get; set; }
+    public int    SettlementCount     { get; set; }
+    public int    DriverCount         { get; set; }
+    public string BackupTimestampUtc  { get; set; }
+    public string CompanyName         { get; set; }
+    public string IntegrityHash       { get; set; }  // SHA-256 of raw DB bytes
+}
+```
+
+#### [NEW] `Services/Backup/ISecureBackupService.cs`
+#### [NEW] `Services/Backup/ISecureRestoreService.cs`
+
+#### [NEW] `Database/Migrations/Migration_007_AddBackupLog.cs`
+```sql
+CREATE TABLE IF NOT EXISTS BackupLog (
+    Id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    BackupPath    TEXT    NOT NULL,
+    BackupSizeKb  INTEGER NOT NULL,
+    SchemaVersion INTEGER NOT NULL,
+    SettlementCount INTEGER NOT NULL,
+    BackupTimestamp TEXT NOT NULL,
+    RestoreTimestamp TEXT,
+    Success       INTEGER NOT NULL DEFAULT 1
+);
+```
+
+---
+
+## Phase 3 — Immutable Accounting Safety
+
+> **Risk: Medium** | **Schema change: Yes**
+
+### Architecture Decision
+
+The existing `Settlement` model already has `CalculatorVersion` and `VehicleNumberSnapshot` / `DriverNameSnapshot`. We extend it with:
+
+| New Field | Type | Purpose |
+|-----------|------|---------|
+| `CalculationHash` | `TEXT` | SHA-256 of the canonical calculation inputs — detects data tampering |
+| `RevisionNumber` | `INTEGER` | 0 = original, increments on each edit |
+| `FormulaVersion` | `INTEGER` | Mirrors `SettlementCalculator.CurrentVersion` at time of save |
+
+### Hash Input (deterministic, canonical)
+```
+SHA-256( "{Date:yyyyMMdd}|{DriverId}|{VehicleId}|{TotalIncome:F2}|
+          {DriverShare:F2}|{OwnerCngShare:F2}|{TotalOwnerExpenses:F2}|
+          {NetDriverPayable:F2}|{CalculatorVersion}" )
+```
+
+**Why this matters:** If any financial field is tampered (e.g., direct SQLite edit), the hash will mismatch. The audit view shows a ⚠ flag.
+
+### New Files
+
+#### [NEW] `Database/Migrations/Migration_008_AddSettlementIntegrity.cs`
+```sql
+ALTER TABLE Settlements ADD COLUMN CalculationHash  TEXT    DEFAULT '';
+ALTER TABLE Settlements ADD COLUMN RevisionNumber   INTEGER DEFAULT 0;
+ALTER TABLE Settlements ADD COLUMN FormulaVersion   INTEGER DEFAULT 0;
+```
+
+#### [NEW] `Services/SettlementIntegrityService.cs`
+```csharp
+string ComputeHash(Settlement s);
+bool   VerifyHash(Settlement s);
+void   StampIntegrity(Settlement s);  // sets all 3 fields
+```
+
+### Modified Files
+
+#### [MODIFY] `Models/Settlement.cs`
+Add 3 new fields.
+
+#### [MODIFY] `Services/SettlementCalculator.cs`
+Call `StampIntegrity(settlement)` at end of `Calculate()`.
+
+#### [MODIFY] `Repositories/SettlementRepository.cs`
+On `UpdateSettlementAsync`: increment `RevisionNumber`, recompute hash.
+
+#### [MODIFY] `ViewModels/SettlementDetailViewModel.cs`
+Show `⚠ HASH MISMATCH` banner if `!integrityService.VerifyHash(settlement)`.
+
+---
+
+## Phase 6 — PDF Export Engine
+
+> **Risk: Low** | **Schema change: No** | **QuestPDF already installed**
+
+### 4 Document Types
+
+| Document | Method | Status |
+|---------|--------|--------|
+| Daily Settlement Receipt | `GenerateSettlementReceiptAsync` | ✅ Already implemented |
+| Driver Ledger Statement | `GenerateDriverLedgerStatementAsync` | 🆕 New |
+| Vehicle Monthly Profit | `GenerateVehicleMonthlyProfitAsync` | 🆕 New (was `NotSupportedException`) |
+| Owner Settlement Summary | `GenerateOwnerSettlementSummaryAsync` | 🆕 New |
+
+### Each Document Includes
+- Bilingual labels (Hindi label / English label)
+- Settlement IDs for audit reference
+- Generated timestamp + formula version
+- `SHA-256` integrity hash in footer
+- Page numbers (`Page X of Y`)
+- Pagination for multi-page reports
+
+### Modified Files
+
+#### [MODIFY] `Services/IPdfService.cs`
+Add 3 new method signatures.
+
+#### [MODIFY] `Services/PdfService.cs`
+Implement the 3 new document builders. Replace `NotSupportedException` on monthly report.
+
+---
+
+## Phase 1 — OEM Device Hardening
+
+> **Risk: Low** | **Schema change: No**
+
+### Xiaomi / Redmi
+- **AutoStart permission:** Show one-time advisory dialog on first launch explaining the user must enable AutoStart in MIUI settings for background backup to work
+- **SQLite busy timeout:** Increase from default 0ms → 3000ms via `PRAGMA busy_timeout = 3000` in `DatabaseService`
+- **Background process kill:** `BackupService.AutoBackupIfNeededAsync` already has try/catch — confirm it handles `OperationCanceledException`
+
+### Samsung One UI 6+
+- **DeX mode:** `onConfigurationChanged` — MAUI handles this via shell navigation, no action needed
+- **Secure Folder:** APP install in Secure Folder requires separate APK install — document in release notes
+
+### Realme / Oppo ColorOS
+- **Permission auto-reset:** VIBRATE permission now declared (previous fix). Storage permission may be auto-revoked after 3 months of no use — `BackupService` already falls back to app-private directory
+
+### All OEMs — Battery Optimization
+- **First launch:** Show `Settings → Battery → DriverLedger → Unrestricted` advisory using `Intent.ActionRequestIgnoreBatteryOptimizations` (Android 6+)
+
+### Modified Files
+
+#### [MODIFY] `Services/StartupService.cs`
+Add PRAGMA busy_timeout + first-launch OEM advisories.
+
+#### [MODIFY] `Database/DatabaseService.cs`
+Add `PRAGMA busy_timeout = 3000` after WAL mode setup.
+
+---
+
+## New Folder Structure
+
+```
+DriverLedger/
+├── Services/
+│   ├── Backup/
+│   │   ├── ISecureBackupService.cs      [NEW]
+│   │   ├── ISecureRestoreService.cs     [NEW]
+│   │   ├── SecureBackupService.cs       [NEW]
+│   │   └── SecureRestoreService.cs      [NEW]
+│   ├── Diagnostics/
+│   │   ├── ICrashLogService.cs          [NEW]
+│   │   └── CrashLogService.cs           [NEW]
+│   ├── Security/
+│   │   └── SecurityService.cs           [NEW]
+│   └── SettlementIntegrityService.cs    [NEW]
+├── Models/
+│   └── BackupManifest.cs                [NEW]
+├── Database/Migrations/
+│   ├── Migration_007_AddBackupLog.cs    [NEW]
+│   └── Migration_008_AddSettlementIntegrity.cs [NEW]
+└── scripts/
+    ├── clean-build.ps1                  [NEW]
+    ├── build-release.ps1                [NEW]
+    ├── verify-apk.ps1                   [NEW]
+    └── install-device.ps1               [NEW]
+```
+
+---
+
+## Database Migration Sequence
+
+| Migration | Version | Change |
+|-----------|---------|--------|
+| Migration_001 | 1 | Initial schema |
+| Migration_002 | 2 | Driver CNG fields |
+| Migration_003 | 3 | Audit indexes |
+| Migration_004 | 4 | CalculatorVersion column |
+| Migration_005 | 5 | Vehicle/driver indexes |
+| Migration_006 | 6 | AuditLog table |
+| **Migration_007** | **7** | **BackupLog table** |
+| **Migration_008** | **8** | **Settlement integrity columns** |
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> **Backup encryption key derivation:** The AES-256-GCM key is derived from the owner's company name + device install ID via PBKDF2. This means if the user reinstalls the app on a new device, backups from the old device **cannot be restored** without the original company name. Is this acceptable, or should we add a user-defined backup password?
+
+> [!IMPORTANT]
+> **Monthly PDF report scope:** `GenerateVehicleMonthlyProfitAsync(int year, int month)` — should this show ALL vehicles, or one vehicle at a time? The existing `IPdfService` signature takes `year` and `month` but no vehicle ID.
+
+> [!NOTE]
+> **Root detection action:** The plan shows a warning advisory on rooted devices, NOT a block. Blocking would prevent legitimate users who root their phones for legitimate reasons. Confirm this is acceptable.
+
+> [!NOTE]
+> **Phase execution order:** I'll implement in order: Phase 4 → 5 → 7 → 2 → 3 → 6 → 1. Each phase is independently committable. Should I proceed immediately, or do you want to review/modify any phase first?
+
+---
+
+## Verification Plan
+
+- 76 existing tests must remain green after every phase
+- New unit tests added per phase:
+  - Phase 2: `SecureBackupServiceTests` (encrypt/decrypt round-trip, corrupt file rejection, schema mismatch rejection)
+  - Phase 3: `SettlementIntegrityServiceTests` (hash computation, tampering detection, revision increment)
+  - Phase 4: `CrashLogServiceTests` (file creation, rotation, purge)
+- Manual verification checklist for OEM-specific items (Phase 1) documented in `docs/oem-testing.md`

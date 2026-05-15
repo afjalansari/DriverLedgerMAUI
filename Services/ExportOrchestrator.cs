@@ -130,7 +130,9 @@ namespace DriverLedger.Services
                     e.Description,
                     Debit           = e.Debit,
                     Credit          = e.Credit,
-                    RunningBalance  = e.Debit - e.Credit   // positive = driver owes owner (Debit=owner→driver, Credit=driver→owner)
+                    // FIX-0B: Use the stored Balance field (maintained by RebalanceInTransaction)
+                    // instead of per-row Debit-Credit, which was a single-row delta, not a running total.
+                    RunningBalance  = e.Balance
                 });
 
                 string filePath = await _csv.ExportToCsvAsync(rows,

@@ -3,6 +3,7 @@
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              Shell.NavBarIsVisible="False"
+             Shell.FlyoutBehavior="Disabled"
              BackgroundColor="#0D1B2A">
 
     <Grid RowDefinitions="*,Auto,*">
@@ -50,7 +51,7 @@
 
         <!-- Footer version -->
         <Label Grid.Row="2"
-               Text="DriverLedger v1.0"
+               Text="DriverLedger v1.2.1"
                FontSize="11"
                TextColor="#37474F"
                HorizontalOptions="Center"

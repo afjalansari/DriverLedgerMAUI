@@ -43,7 +43,10 @@ namespace DriverLedger.Services
             {
                 var values = properties.Select(p =>
                 {
-                    if (item == null || EqualityComparer<T>.Default.Equals(item, default!)) return string.Empty;
+                    // M3 fix: removed dead EqualityComparer<T>.Default.Equals(item, default!)
+                    // guard — for class/anonymous types it is equivalent to 'item == null'
+                    // and adds confusion. The null check below is sufficient.
+                    if (item is null) return string.Empty;
                     var val = p.GetValue(item);
                     return EscapeCsv(val?.ToString() ?? string.Empty);
                 });

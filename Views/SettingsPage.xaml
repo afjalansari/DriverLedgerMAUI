@@ -51,6 +51,18 @@
                 </Grid>
             </Border>
 
+            <!-- Diagnostics -->
+            <Border BackgroundColor="#162032" StrokeShape="RoundRectangle 14" Stroke="#1E3A5F" Padding="20,16">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                    <Label Grid.Column="0" Text="🔧" FontSize="22" VerticalOptions="Center"/>
+                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                        <Label Text="Diagnostics" TextColor="White" FontSize="15" FontAttributes="Bold"/>
+                        <Label Text="View system logs and database stats" TextColor="#4A6FA5" FontSize="12"/>
+                    </VerticalStackLayout>
+                    <Button Grid.Column="2" Text="View" Command="{Binding DiagnosticsCommand}" IsEnabled="{Binding IsNotBusy}" BackgroundColor="#1E3A5F" TextColor="#90CAF9" BorderColor="#2979FF" BorderWidth="1" CornerRadius="8" HeightRequest="36" Padding="14,0" FontSize="13" VerticalOptions="Center"/>
+                </Grid>
+            </Border>
+
             <!-- ── Account ──────────────────────────────────────────── -->
             <Label Text="ACCOUNT" TextColor="#4A6FA5" FontSize="11" FontAttributes="Bold" Margin="4,8,0,0"/>
 

@@ -1,7 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Import local signing credentials (never commit signing.props to git) -->
-  <Import Project="signing.props" Condition="Exists('signing.props')" />
 
 	<!-- ========================================================= -->
 	<!-- BASIC PROJECT SETTINGS                                   -->
@@ -31,12 +29,14 @@
 		<ApplicationTitle>DriverLedger</ApplicationTitle>
 		<ApplicationId>com.sabiyaco.driverledger</ApplicationId>
 
-		<ApplicationDisplayVersion>1.2.0</ApplicationDisplayVersion>
-		<ApplicationVersion>10</ApplicationVersion>
+		<ApplicationDisplayVersion>1.2.1</ApplicationDisplayVersion>
+		<ApplicationVersion>11</ApplicationVersion>
+		<!-- RC3 fix: match installed workload android 36.x (was 35) -->
+		<AndroidTargetSdkVersion>36</AndroidTargetSdkVersion>
 
 		<!-- Unify version across frameworks to fix NU1105 -->
-		<Version>1.2.0</Version>
-		<PackageVersion>1.2.0</PackageVersion>
+		<Version>1.2.1</Version>
+		<PackageVersion>1.2.1</PackageVersion>
 
 		<!-- Windows -->
 		<WindowsPackageType>None</WindowsPackageType>
@@ -74,40 +74,46 @@
 		<!-- Use modern Android build tools -->
 		<AndroidUseAapt2>true</AndroidUseAapt2>
 
-		<!-- Use APK for testing (PlayStore ke liye AAB use karna) -->
 		<AndroidPackageFormat>apk</AndroidPackageFormat>
 
 		<!-- ============================================================ -->
-		<!-- MULTI-ABI SUPPORT: Include ALL CPU architectures               -->
-		<!-- This fixes: "App not installed as app isn't compatible"        -->
-		<!-- android-arm   = 32-bit ARM (older phones)                      -->
-		<!-- android-arm64 = 64-bit ARM (modern phones, Play Store required)-->
-		<!-- android-x86   = 32-bit emulator                                -->
-		<!-- android-x64   = 64-bit emulator                                -->
-		<!-- RuntimeIdentifiers replaces deprecated AndroidSupportedAbis    -->
+		<!-- ABI SUPPORT (RC1 fix)                                          -->
+		<!-- arm64 = all modern phones (Play Store mandatory since Aug 2019) -->
+		<!-- arm   = 32-bit fallback for older phones                        -->
+		<!-- x86/x64 REMOVED — emulator-only, not needed in Release APK     -->
+		<!--   Including x86 was adding ~10 MB and causing .so signing       -->
+		<!--   inconsistency with SQLitePCLRaw native libraries.             -->
 		<!-- ============================================================ -->
-		<RuntimeIdentifiers>android-arm;android-arm64;android-x86;android-x64</RuntimeIdentifiers>
+		<RuntimeIdentifiers>android-arm64;android-arm</RuntimeIdentifiers>
 
-		<!-- APK SIGNING -->
-		<!-- Passwords are read from 'signing.props' (never commit that file) -->
-		<AndroidKeyStore>true</AndroidKeyStore>
-		<AndroidSigningKeyStore>$(AndroidSigningKeyStorePath)</AndroidSigningKeyStore>
-		<AndroidSigningKeyAlias>$(AndroidSigningKeyAliasName)</AndroidSigningKeyAlias>
-		<AndroidSigningKeyPass>$(AndroidSigningKeyPassword)</AndroidSigningKeyPass>
-		<AndroidSigningStorePass>$(AndroidSigningStorePassword)</AndroidSigningStorePass>
-
-
-		<!-- Linker -->
+		<!-- RC1 fix: Disable trimmer entirely — BCrypt.Net-Next uses          -->
+		<!-- reflection for VerifyPassword(); any trim level silently removes  -->
+		<!-- BCrypt internals and causes a runtime crash in Release.           -->
+		<!-- IL1031 fix: TrimMode=none is INVALID in .NET 10 ILLink.          -->
+		<!-- Use PublishTrimmed=false to disable the trimmer pipeline entirely. -->
 		<AndroidLinkMode>SdkOnly</AndroidLinkMode>
+		<PublishTrimmed>false</PublishTrimmed>
 
-		<!-- Avoid reflection issues -->
-		<TrimMode>partial</TrimMode>
-
-		<!-- Disable AOT (MAUI reflection issues avoid) -->
+		<!-- Disable AOT — avoids MAUI DI + SQLite reflection issues -->
 		<RunAOTCompilation>false</RunAOTCompilation>
 
-		<!-- Embed assemblies -->
+		<!-- Embed assemblies into APK (not split delivery) -->
 		<EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+
+		<!-- ============================================================ -->
+		<!-- RC6 fix: Embed signing config so dotnet publish always signs.  -->
+		<!-- Passwords must be supplied at build time via -p: args or env   -->
+		<!-- vars — never hardcode passwords in this file.                  -->
+		<!-- Build command:                                                  -->
+		<!--   dotnet publish -f net10.0-android -c Release                 -->
+		<!--     -p:AndroidSigningKeyStore=driverledger.keystore            -->
+		<!--     -p:AndroidSigningKeyAlias=driverledger                     -->
+		<!--     -p:AndroidSigningStorePass=<pass>                          -->
+		<!--     -p:AndroidSigningKeyPass=<pass>                            -->
+		<!-- ============================================================ -->
+		<AndroidKeyStore>true</AndroidKeyStore>
+		<AndroidSigningKeyStore>driverledger.keystore</AndroidSigningKeyStore>
+		<AndroidSigningKeyAlias>driverledger</AndroidSigningKeyAlias>
 
 	</PropertyGroup>
 
@@ -119,7 +125,7 @@
 	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
 
 		<AndroidLinkMode>None</AndroidLinkMode>
-		<TrimMode>copyused</TrimMode>
+		<!-- Debug builds never trim — no TrimMode or PublishTrimmed needed. -->
 
 		<!-- Enable debug symbols so the debugger can attach on Android -->
 		<DebugSymbols>true</DebugSymbols>
@@ -136,9 +142,8 @@
 
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net10.0-android|AnyCPU'">
-	  <AndroidPackageFormat>apk</AndroidPackageFormat>
-	</PropertyGroup>
+	<!-- RC4 fix: removed duplicate Release|AnyCPU PropertyGroup that was overriding
+	     the main Release config above and caused AndroidPackageFormat to be set twice. -->
 
 
 	<!-- ========================================================= -->
@@ -147,9 +152,23 @@
 
 	<ItemGroup>
 
-		<MauiIcon Include="Resources\AppIcon\appicon.png" Color="#1565C0" />
+		<!--
+			App icon source: single PNG used for all icon variants.
+			Color is the adaptive icon BACKGROUND color.
+			ForegroundScale=0.65 gives ~18% visual padding inside the adaptive icon safe zone
+			(Android requires content to stay within 66dp of a 108dp canvas to survive masking).
+		-->
+		<MauiIcon Include="Resources\AppIcon\appicon.png" Color="#1565C0" ForegroundScale="0.65" />
 
-		<MauiSplashScreen Include="Resources\Splash\splash.png" Color="#1565C0" />
+		<!--
+			Splash screen: PNG centered on the Color background.
+			BaseSize="128,128" tells the resizetizer to scale the source PNG to
+			128dp before placing it on the background. Without this, a 1024px PNG
+			in res/drawable/ (treated as mdpi) renders at 1024dp — overflowing every
+			screen. 128dp is visible on all screen sizes and matches Android 12+
+			adaptive splash constraints (240dp safe zone).
+		-->
+		<MauiSplashScreen Include="Resources\Splash\splash.png" Color="#1565C0" BaseSize="128,128" />
 
 	</ItemGroup>
 

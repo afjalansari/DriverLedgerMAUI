@@ -2,6 +2,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using DriverLedger.Models;
+using DriverLedger.Services;
 // Aliases to disambiguate from MAUI's identically-named types
 using QColors     = QuestPDF.Helpers.Colors;
 using QIContainer = QuestPDF.Infrastructure.IContainer;
@@ -15,9 +16,11 @@ namespace DriverLedger.Services
     /// </summary>
     public class PdfService : IPdfService
     {
-        // _driverRepo removed — receipts use immutable Settlement snapshot fields only.
-        public PdfService()
+        private readonly ISettlementCalculator _calculator;
+
+        public PdfService(ISettlementCalculator calculator)
         {
+            _calculator = calculator;
             QuestPDF.Settings.License = LicenseType.Community;
         }
 
@@ -43,7 +46,7 @@ namespace DriverLedger.Services
 
         // ── Page orchestrator ────────────────────────────────────────────────────
 
-        private static void BuildPage(PageDescriptor page, Settlement s)
+        private void BuildPage(PageDescriptor page, Settlement s)
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
@@ -52,12 +55,12 @@ namespace DriverLedger.Services
 
             page.Header().Element(c => BuildHeader(c, s));
             page.Content().PaddingVertical(10).Column(col => BuildContent(col, s));
-            page.Footer().Element(c => BuildFooter(c));
+            page.Footer().Element(c => BuildFooter(c, s));
         }
 
         // ── Section: Header ──────────────────────────────────────────────────────
 
-        private static void BuildHeader(QIContainer container, Settlement s)
+        private void BuildHeader(QIContainer container, Settlement s)
         {
             container.Row(row =>
             {
@@ -79,7 +82,7 @@ namespace DriverLedger.Services
 
         // ── Section: Content body ────────────────────────────────────────────────
 
-        private static void BuildContent(ColumnDescriptor col, Settlement s)
+        private void BuildContent(ColumnDescriptor col, Settlement s)
         {
             bool isSelfDriven = s.DriverTypeSnapshot == DriverType.SelfDriven;
 
@@ -98,7 +101,7 @@ namespace DriverLedger.Services
 
         // ── Section: Driver / Vehicle identity card ──────────────────────────────
 
-        private static void BuildDriverVehicleCard(ColumnDescriptor col, Settlement s, bool isSelfDriven)
+        private void BuildDriverVehicleCard(ColumnDescriptor col, Settlement s, bool isSelfDriven)
         {
             col.Item().Border(1).BorderColor(QColors.Grey.Lighten3).Padding(10).Row(row =>
             {
@@ -116,16 +119,30 @@ namespace DriverLedger.Services
             });
         }
 
-        // ── Section: Total income ────────────────────────────────────────────────
+        // ── Section: Total income ───────────────────────────────────────────────────────────────
 
-        private static void BuildIncomeSection(ColumnDescriptor col, Settlement s)
+        private void BuildIncomeSection(ColumnDescriptor col, Settlement s)
         {
             col.Item().PaddingTop(14).Text("1.  Total Kamai  (Total Income)").FontSize(12).SemiBold();
             col.Item().Table(table =>
             {
                 table.ColumnsDefinition(c => { c.RelativeColumn(); c.ConstantColumn(110); });
-                table.Cell().Element(Cell).Text("Operator Bill (Uber / Ola / Rapido)");
-                table.Cell().Element(Cell).AlignRight().Text($"₹{s.TotalIncome:N0}");
+
+                // Phase 3: show each platform aggregator as its own row
+                if (s.PlatformIncomes is { Count: > 0 })
+                {
+                    foreach (var pi in s.PlatformIncomes)
+                    {
+                        table.Cell().Element(Cell).Text($"{pi.PlatformName}  (Bill: ₹{pi.OperatorBill:N0}  Cash: ₹{pi.CashCollected:N0})");
+                        table.Cell().Element(Cell).AlignRight().Text($"₹{pi.OperatorBill:N0}");
+                    }
+                }
+                else
+                {
+                    table.Cell().Element(Cell).Text("Operator Bill (Uber / Ola / Rapido)");
+                    table.Cell().Element(Cell).AlignRight().Text($"₹{s.TotalIncome:N0}");
+                }
+
                 table.Cell().Background(QColors.Grey.Lighten4).Padding(5).Text("KULL KAMAI").SemiBold();
                 table.Cell().Background(QColors.Grey.Lighten4).Padding(5).AlignRight()
                     .Text($"₹{s.TotalIncome:N0}").SemiBold();
@@ -134,7 +151,7 @@ namespace DriverLedger.Services
 
         // ── Section: Driver share (hired drivers only) ───────────────────────────
 
-        private static void BuildDriverShareSection(ColumnDescriptor col, Settlement s)
+        private void BuildDriverShareSection(ColumnDescriptor col, Settlement s)
         {
             col.Item().PaddingTop(12).Text("2.  Driver ka Hissa  (Driver Share)").FontSize(12).SemiBold();
             col.Item().Table(table =>
@@ -152,7 +169,7 @@ namespace DriverLedger.Services
 
         // ── Section: Cash collected ──────────────────────────────────────────────
 
-        private static void BuildCashSection(ColumnDescriptor col, Settlement s)
+        private void BuildCashSection(ColumnDescriptor col, Settlement s)
         {
             col.Item().PaddingTop(12).Text("3.  Driver ne Cash Liya  (Cash Collected)").FontSize(12).SemiBold();
             col.Item().Table(table =>
@@ -165,7 +182,7 @@ namespace DriverLedger.Services
 
         // ── Section: Expenses ────────────────────────────────────────────────────
 
-        private static void BuildExpensesSection(ColumnDescriptor col, Settlement s)
+        private void BuildExpensesSection(ColumnDescriptor col, Settlement s)
         {
             col.Item().PaddingTop(12).Text("4.  Driver ne Kharcha Kiya  (Expenses)").FontSize(12).SemiBold();
             col.Item().Table(table =>
@@ -193,7 +210,7 @@ namespace DriverLedger.Services
 
         // ── Section: Result block + formula breakdown ────────────────────────────
 
-        private static void BuildResultBlock(ColumnDescriptor col, Settlement s, bool isSelfDriven)
+        private void BuildResultBlock(ColumnDescriptor col, Settlement s, bool isSelfDriven)
         {
             var net = s.NetDriverPayable;
             ResolveResultStyle(net, out string color, out string label, out string bg);
@@ -210,16 +227,18 @@ namespace DriverLedger.Services
             BuildFormulaBreakdown(col, s, net, label, color, isSelfDriven);
         }
 
-        private static void ResolveResultStyle(decimal net, out string color, out string label, out string bg)
+        private void ResolveResultStyle(decimal net, out string color, out string label, out string bg)
         {
             if (net > 0)      { color = QColors.Green.Medium; label = "Driver ko milega ✓";  bg = QColors.Green.Lighten5; }
             else if (net < 0) { color = QColors.Red.Medium;   label = "Driver ko dena hai !"; bg = QColors.Red.Lighten5;   }
             else              { color = QColors.Grey.Medium;  label = "Hisaab Barabar ✓";   bg = QColors.Grey.Lighten5;  }
         }
 
-        private static void BuildFormulaBreakdown(
+        private void BuildFormulaBreakdown(
             ColumnDescriptor col, Settlement s, decimal net, string label, string color, bool isSelfDriven)
         {
+            var trace = _calculator.TraceFromSettlement(s);
+
             col.Item().Background(QColors.Grey.Lighten5).Border(1)
                 .BorderColor(QColors.Grey.Lighten3).Padding(12).Column(formula =>
             {
@@ -227,21 +246,30 @@ namespace DriverLedger.Services
                     .FontSize(10).SemiBold().FontColor(QColors.Grey.Darken2);
                 formula.Item().PaddingTop(8);
 
-                if (!isSelfDriven)
-                    formula.Item().Text($"   Driver Share            =  ₹{s.DriverShare:N0}");
+                // Render each audit trace step as a monospace PDF row
+                foreach (var step in trace.Steps)
+                {
+                    // Highlight the result line
+                    bool isResult  = step.StartsWith("Net Driver Payable") || step.StartsWith("Result");
+                    bool isChallan = step.StartsWith("Driver Challan");
 
-                formula.Item().Text($"(-) Cash liya             =  ₹{s.TotalCashCollected:N0}");
-                formula.Item().Text($"(+) Owner ne kharcha diya =  ₹{Math.Round(s.OwnerCngShare + s.TotalOwnerExpenses, 2):N0}");
-                formula.Item().PaddingTop(4).LineHorizontal(1).LineColor(QColors.Grey.Medium);
-                formula.Item().PaddingTop(4)
-                    .Text($"   FINAL               =  ₹{Math.Abs(net):N0}  ({label})")
-                    .SemiBold().FontColor(color);
+                    var item = formula.Item().Text(step).FontSize(9);
+
+                    if (isResult)  item.SemiBold().FontColor(color);
+                    else if (isChallan) item.FontColor(QColors.Red.Medium);
+                    else item.FontColor(QColors.Grey.Darken1);
+                }
+
+                formula.Item().PaddingTop(6).LineHorizontal(1).LineColor(QColors.Grey.Medium);
+                formula.Item().PaddingTop(6)
+                    .Text($"   FINAL  =  ₹{Math.Abs(net):N0}   →  {label}")
+                    .FontSize(11).SemiBold().FontColor(color);
             });
         }
 
-        // ── Section: Footer ──────────────────────────────────────────────────────
+        // ── Section: Footer ───────────────────────────────────────────────────────────────
 
-        private static void BuildFooter(QIContainer container)
+        private void BuildFooter(QIContainer container, Settlement s)
         {
             container.Column(footer =>
             {
@@ -263,7 +291,7 @@ namespace DriverLedger.Services
                 {
                     x.Span("Generated by DriverLedger  •  ").FontSize(8).FontColor(QColors.Grey.Medium);
                     x.Span($"{DateTime.Now:dd MMM yyyy, hh:mm tt}").FontSize(8).FontColor(QColors.Grey.Medium);
-                    x.Span("  •  This is an auto-generated receipt.").FontSize(8).FontColor(QColors.Grey.Medium);
+                    x.Span($"  •  v{s.CalculatorVersion}").FontSize(8).FontColor(QColors.Grey.Medium);
                 });
             });
         }
@@ -271,10 +299,15 @@ namespace DriverLedger.Services
         // ── Shared helpers ───────────────────────────────────────────────────────
 
         /// <summary>Standard table cell style: bottom border + vertical padding.</summary>
-        private static QIContainer Cell(QIContainer c) =>
+        private QIContainer Cell(QIContainer c) =>
             c.BorderBottom(1).BorderColor(QColors.Grey.Lighten4).PaddingVertical(6);
 
+        // L3 fix: NotImplementedException replaced with NotSupportedException — a more
+        // semantically correct exception for planned-but-not-yet-built features. Callers
+        // must catch this or check before calling to avoid silent crashes.
         public Task<string> GenerateMonthlyReportAsync(int year, int month) =>
-            throw new NotImplementedException("Monthly Report — Phase 4");
+            throw new NotSupportedException(
+                "Monthly Report is not yet available (planned for Phase 4). " +
+                "Check IPdfService.GenerateMonthlyReportAsync before calling.");
     }
 }

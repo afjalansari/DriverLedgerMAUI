@@ -3,20 +3,80 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:views="clr-namespace:DriverLedger.Views"
-    FlyoutBehavior="Disabled"
+    FlyoutBehavior="Flyout"
     Shell.NavBarIsVisible="False"
-    Shell.TabBarIsVisible="False">
+    Shell.TabBarIsVisible="False"
+    FlyoutBackgroundColor="#080C18">
 
-    <!--
-        Top-level Shell routes — navigable with absolute // routes.
-        SplashPage is the very first page shown on cold launch.
-        StartupService routes away from it immediately.
-    -->
-    <ShellContent Title="Splash"           Route="SplashPage"           ContentTemplate="{DataTemplate views:SplashPage}" />
-    <ShellContent Title="CompanyCreation"  Route="CompanyCreationPage"  ContentTemplate="{DataTemplate views:CompanyCreationPage}" />
-    <ShellContent Title="Login"            Route="LoginPage"            ContentTemplate="{DataTemplate views:LoginPage}" />
-    <ShellContent Title="Dashboard"        Route="DashboardPage"        ContentTemplate="{DataTemplate views:DashboardPage}" />
-    <!-- Legacy company page route kept for backwards compat -->
-    <ShellContent Title="Company"          Route="CompanyPage"          ContentTemplate="{DataTemplate views:CompanyPage}" />
+    <!-- ── Flyout Header ────────────────────────────────────────────────── -->
+    <Shell.FlyoutHeader>
+        <Grid HeightRequest="180" Padding="20,40,20,10">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#0D1B2A" Offset="0"/>
+                    <GradientStop Color="#1A3560" Offset="1"/>
+                </LinearGradientBrush>
+            </Grid.Background>
+            <VerticalStackLayout VerticalOptions="End" Spacing="4">
+                <HorizontalStackLayout Spacing="8">
+                    <Label Text="🚕" FontSize="26" VerticalOptions="Center"/>
+                    <Label Text="Driver" FontSize="24" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                    <Label Text="Ledger" FontSize="24" FontAttributes="Bold" TextColor="#4FC3F7" VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+                <Label Text="Premium Fleet Accounting" FontSize="11" TextColor="#566A7F" Margin="4,0,0,0"/>
+                <BoxView HeightRequest="1" BackgroundColor="#1A3560" Margin="0,10,0,0"/>
+            </VerticalStackLayout>
+        </Grid>
+    </Shell.FlyoutHeader>
+
+    <!-- ── Auth / Startup (Hidden from Flyout) ─────────────────────────── -->
+    <ShellContent Title="Splash"
+                  Route="SplashPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:SplashPage}" />
+
+    <ShellContent Title="CompanyCreation"
+                  Route="CompanyCreationPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:CompanyCreationPage}" />
+
+    <ShellContent Title="Login"
+                  Route="LoginPage"
+                  FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:LoginPage}" />
+
+    <!-- ── Flyout Groups ────────────────────────────────────────────────── -->
+
+    <FlyoutItem Title="Dashboard" FlyoutDisplayOptions="AsSingleItem" Icon="⊞">
+        <ShellContent Route="DashboardPage" ContentTemplate="{DataTemplate views:DashboardPage}" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Settlements" FlyoutDisplayOptions="AsSingleItem" Icon="📋">
+        <ShellContent Route="SettlementListPage" ContentTemplate="{DataTemplate views:SettlementListPage}" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Activity Feed" FlyoutDisplayOptions="AsSingleItem" Icon="🕒">
+        <ShellContent Route="SettlementHistoryPage" ContentTemplate="{DataTemplate views:SettlementHistoryPage}" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Fleet Management" FlyoutDisplayOptions="AsMultipleItems">
+        <ShellContent Title="Drivers" Icon="👨‍✈️" Route="DriverListPage" ContentTemplate="{DataTemplate views:DriverListPage}" />
+        <ShellContent Title="Vehicles" Icon="🚗" Route="VehicleListPage" ContentTemplate="{DataTemplate views:VehicleListPage}" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Financials" FlyoutDisplayOptions="AsSingleItem" Icon="💰">
+        <ShellContent Title="Driver Ledger" Route="DriverLedgerListPage" ContentTemplate="{DataTemplate views:DriverLedgerListPage}" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="System Tools" FlyoutDisplayOptions="AsMultipleItems">
+        <ShellContent Title="Analytics" Icon="📊" Route="AnalyticsPage" ContentTemplate="{DataTemplate views:AnalyticsPage}" />
+        <ShellContent Title="Settings" Icon="⚙️" Route="SettingsPage" ContentTemplate="{DataTemplate views:SettingsPage}" />
+        <ShellContent Title="Diagnostics" Icon="🔧" Route="DiagnosticsPage" ContentTemplate="{DataTemplate views:DiagnosticsPage}" />
+    </FlyoutItem>
+
+    <!-- ── Logout ──────────────────────────────────────────────────────── -->
+    <MenuItem Text="Logout"
+              IconImageSource="🔓"
+              Clicked="OnLogoutClicked" />
 
 </Shell>

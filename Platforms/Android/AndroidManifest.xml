@@ -4,6 +4,13 @@
 
 
     <!--
+        RC1 fix: extractNativeLibs=true is required for SQLitePCLRaw native libs.
+        When false (Android default on API 23+), the system maps .so files
+        directly from the APK zip and requires 4 KB page-alignment.
+        SQLitePCLRaw's libe_sqlite3.so is not always page-aligned in the NuGet
+        package, causing INSTALL_FAILED_INVALID_APK on some devices.
+        Setting true forces extraction to /data/app which always works.
+
         External storage permissions for BackupService:
         • WRITE_EXTERNAL_STORAGE — needed on API ≤ 28 to write to Documents/
         • READ_EXTERNAL_STORAGE  — needed on API ≤ 32 to list/restore backups
@@ -16,13 +23,27 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+    <!--
+        VIBRATE: used by MAUI for haptic feedback on pickers, date selectors,
+        and bottom sheets. Without it, some Xiaomi/Realme/Oppo ROMs throw a
+        SecurityException and crash the entire page navigation silently.
+    -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/appicon"
         android:roundIcon="@mipmap/appicon_round"
         android:supportsRtl="true"
-        android:label="DriverLedger">
+        android:label="DriverLedger"
+        android:extractNativeLibs="true">
+        <!--
+            android:extractNativeLibs="true" (RC1 fix):
+            Forces the system to extract native .so files to disk before loading.
+            Without this, libe_sqlite3.so from SQLitePCLRaw.bundle_green causes
+            INSTALL_FAILED_INVALID_APK on devices that enforce APK alignment
+            (Pixel, Samsung One UI 6+, Xiaomi MIUI 14+).
+        -->
     </application>
 
     <!-- No INTERNET permission — fully offline app -->

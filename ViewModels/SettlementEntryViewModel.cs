@@ -17,7 +17,7 @@ namespace DriverLedger.ViewModels
         private readonly IVehicleDriverRepository _vdRepo;
         private readonly ISettlementRepository   _settlementRepo;
         private readonly IDriverLedgerRepository _ledgerRepo;
-        private readonly SettlementCalculator    _calculator;
+        private readonly ISettlementCalculator   _calculator;
         private readonly INavigationService      _nav;
         private readonly IDialogService          _dialog;
 
@@ -55,11 +55,22 @@ namespace DriverLedger.ViewModels
         private string _repairText = string.Empty;
         private string _miscText = string.Empty;
 
+        // ── Challan decimal backing fields (BUG-2 fix) ───────────────────
+        private decimal _driverChallan;
+        private decimal _ownerChallan;
+
         // ── Calculated result backing fields ──────────────────────────────
         private decimal _totalOperatorBill;
         private decimal _totalCashCollected;
         private decimal _netDriverPayable;
         private string _settlementLabel = "—";
+
+        // ── Result-card display properties (BUG-1 fix) ───────────────────
+        private decimal _driverIncomeShare;
+        private decimal _driverCngShare;
+        private decimal _driverFaultChallan;
+        private decimal _driverNetHaq;
+        private decimal _cashWithDriver;
 
         // ── UI state ──────────────────────────────────────────────────────
         private bool   _isExpensesExpanded = false;
@@ -70,7 +81,7 @@ namespace DriverLedger.ViewModels
         // ── Collections ───────────────────────────────────────────────────
         public ObservableCollection<Vehicle> Vehicles { get; } = new();
         public ObservableCollection<AggregatorRowViewModel> OperatorRows { get; } = new();
-        public static List<string> ShiftOptions => ShiftTypes.All;
+        public List<string> ShiftOptions => ShiftTypes.All;
 
         public int EditSettlementId
         {
@@ -98,8 +109,9 @@ namespace DriverLedger.ViewModels
         public string FuelSplitSummary { get => _fuelSplitSummary; private set => SetProperty(ref _fuelSplitSummary, value); }
 
         public string CngText { get => _cngText; set { SetProperty(ref _cngText, value); _totalCng = Parse(value); Recalculate(); } }
-        public string DriverChallanText { get => _driverChallanText; set { SetProperty(ref _driverChallanText, value); Recalculate(); } }
-        public string OwnerChallanText  { get => _ownerChallanText;  set { SetProperty(ref _ownerChallanText,  value); Recalculate(); } }
+        // BUG-2 fix: parse challan text into backing decimal fields
+        public string DriverChallanText { get => _driverChallanText; set { SetProperty(ref _driverChallanText, value); _driverChallan = Parse(value); Recalculate(); } }
+        public string OwnerChallanText  { get => _ownerChallanText;  set { SetProperty(ref _ownerChallanText,  value); _ownerChallan  = Parse(value); Recalculate(); } }
         public string ParkingText { get => _parkingText; set { SetProperty(ref _parkingText, value); _parking = Parse(value); Recalculate(); } }
         public string TollText { get => _tollText; set { SetProperty(ref _tollText, value); _toll = Parse(value); Recalculate(); } }
         public string RepairText { get => _repairText; set { SetProperty(ref _repairText, value); _repair = Parse(value); Recalculate(); } }
@@ -109,6 +121,13 @@ namespace DriverLedger.ViewModels
         public decimal TotalCashCollected { get => _totalCashCollected; private set => SetProperty(ref _totalCashCollected, value); }
         public decimal NetDriverPayable { get => _netDriverPayable; private set => SetProperty(ref _netDriverPayable, value); }
         public string SettlementLabel { get => _settlementLabel; private set => SetProperty(ref _settlementLabel, value); }
+
+        // BUG-1 fix: result card display properties
+        public decimal DriverIncomeShare  { get => _driverIncomeShare;  private set => SetProperty(ref _driverIncomeShare,  value); }
+        public decimal DriverCngShare     { get => _driverCngShare;     private set => SetProperty(ref _driverCngShare,     value); }
+        public decimal DriverFaultChallan { get => _driverFaultChallan; private set => SetProperty(ref _driverFaultChallan, value); }
+        public decimal DriverNetHaq       { get => _driverNetHaq;       private set => SetProperty(ref _driverNetHaq,       value); }
+        public decimal CashWithDriver     { get => _cashWithDriver;     private set => SetProperty(ref _cashWithDriver,     value); }
 
         public bool IsExpensesExpanded { get => _isExpensesExpanded; set => SetProperty(ref _isExpensesExpanded, value); }
 
@@ -128,7 +147,7 @@ namespace DriverLedger.ViewModels
             public IVehicleRepository       VehicleRepo     { get; init; } = null!;
             public IDriverRepository        DriverRepo      { get; init; } = null!;
             public IVehicleDriverRepository VdRepo          { get; init; } = null!;
-            public SettlementCalculator     Calculator      { get; init; } = null!;
+            public ISettlementCalculator    Calculator      { get; init; } = null!;
         }
 
         public SettlementEntryViewModel(
@@ -233,8 +252,10 @@ namespace DriverLedger.ViewModels
                 _driverIncomePercent = s.TotalIncome > 0
                     ? Math.Round(s.DriverShare / s.TotalIncome * 100, 0) : 50m;
                 _ownerIncomePercent = 100m - _driverIncomePercent;
-                _driverCngPercent   = 50m;
-                _ownerCngPercent    = 50m;
+                // BUG-4 fix: restore the driver's actual CNG split from the driver record,
+                // not a hardcoded 50/50 default.
+                _driverCngPercent = _assignedDriver?.DriverCngPercent > 0 ? _assignedDriver.DriverCngPercent : 50m;
+                _ownerCngPercent  = 100m - _driverCngPercent;
                 ContractSummary  = $"{_driverIncomePercent:0}% / {_ownerIncomePercent:0}%";
                 FuelSplitSummary = $"{_driverCngPercent:0}% / {_ownerCngPercent:0}%";
                 OnPropertyChanged(nameof(DriverIncomePercent));
@@ -281,10 +302,19 @@ namespace DriverLedger.ViewModels
                     case ExpenseType.CNG:     CngText     = exp.Amount.ToString("G"); break;
                     case ExpenseType.Toll:    TollText    = exp.Amount.ToString("G"); break;
                     case ExpenseType.Parking: ParkingText = exp.Amount.ToString("G"); break;
+                    // H4 fix: handle the first-class OwnerChallan type (new entries).
+                    case ExpenseType.OwnerChallan: OwnerChallanText = exp.Amount.ToString("G"); break;
                     case ExpenseType.Other:
-                        // BUG-7 fix: distinguish Repair vs Misc by the stored Name field.
-                        if (exp.Name == "Repair") RepairText = exp.Amount.ToString("G");
-                        else                      MiscText   = exp.Amount.ToString("G");
+                        // BUG-2 fix: restore challan and repair/misc from stored Name field.
+                        // The inner Name switch also handles old DB rows that stored OwnerChallan
+                        // as ExpenseType.Other (backward compatibility with pre-H4 data).
+                        switch (exp.Name)
+                        {
+                            case "Repair":        RepairText        = exp.Amount.ToString("G"); break;
+                            case "DriverChallan": DriverChallanText = exp.Amount.ToString("G"); break;
+                            case "OwnerChallan":  OwnerChallanText  = exp.Amount.ToString("G"); break;
+                            default:              MiscText          = exp.Amount.ToString("G"); break;
+                        }
                         break;
                 }
             }
@@ -346,9 +376,16 @@ namespace DriverLedger.ViewModels
             try
             {
                 var s = _calculator.Calculate(request);
-                NetDriverPayable = s.NetDriverPayable;
-                TotalOperatorBill = s.TotalIncome;
+                NetDriverPayable   = s.NetDriverPayable;
+                TotalOperatorBill  = s.TotalIncome;
                 TotalCashCollected = s.TotalCashCollected;
+
+                // BUG-1 fix: populate the result-card display properties
+                DriverIncomeShare  = s.DriverShare;
+                DriverCngShare     = s.DriverCngShare;
+                DriverFaultChallan = s.DriverChallanTotal;
+                DriverNetHaq       = Math.Abs(s.NetDriverPayable);
+                CashWithDriver     = s.TotalCashCollected;
 
                 if (NetDriverPayable > 0)
                     SettlementLabel = $"₹{NetDriverPayable:N0} (Driver ko milega)";
@@ -357,7 +394,12 @@ namespace DriverLedger.ViewModels
                 else
                     SettlementLabel = "✅ Hisaab Barabar";
             }
-            catch { SettlementLabel = "⚠️ Calculation Error"; }
+            catch (Exception ex)
+            {
+                // BUG-7 fix: log the real exception instead of silently swallowing it
+                System.Diagnostics.Debug.WriteLine($"[Recalculate] Error: {ex.Message}");
+                SettlementLabel = "⚠️ Calculation Error";
+            }
 
             OnPropertyChanged(nameof(NetDriverPayable));
             OnPropertyChanged(nameof(TotalOperatorBill));
@@ -366,20 +408,37 @@ namespace DriverLedger.ViewModels
 
         private SettlementCalculator.CalculationRequest BuildCalculationRequest()
         {
-            var request = new SettlementCalculator.CalculationRequest
+            // Build expense list first — CalculationRequest is an immutable record,
+            // so collections must be fully constructed before passing to the initializer.
+            var expenses = new List<SettlementExpense>();
+            if (_totalCng      > 0) expenses.Add(new SettlementExpense { Type = ExpenseType.CNG,     Amount = _totalCng });
+            if (_toll          > 0) expenses.Add(new SettlementExpense { Type = ExpenseType.Toll,    Amount = _toll });
+            if (_parking       > 0) expenses.Add(new SettlementExpense { Type = ExpenseType.Parking, Amount = _parking });
+            if (_repair        > 0) expenses.Add(new SettlementExpense { Type = ExpenseType.Other,        Amount = _repair,        Name = "Repair" });
+            if (_miscellaneous > 0) expenses.Add(new SettlementExpense { Type = ExpenseType.Other,        Amount = _miscellaneous, Name = "Misc" });
+            // BUG-2 fix: include challan amounts so the calculator routes them correctly.
+            if (_driverChallan > 0) expenses.Add(new SettlementExpense { Type = ExpenseType.Other,        Amount = _driverChallan,  Name = "DriverChallan" });
+            // H4 fix: use first-class OwnerChallan enum — matches SettlementCalculator filter.
+            if (_ownerChallan  > 0) expenses.Add(new SettlementExpense { Type = ExpenseType.OwnerChallan, Amount = _ownerChallan,   Name = "OwnerChallan" });
+
+            return new SettlementCalculator.CalculationRequest
             {
-                Date = Date, Driver = _assignedDriver!, Vehicle = _selectedVehicle!, ShiftType = SelectedShift,
-                DriverIncomePercent = _driverIncomePercent, DriverCngPercent = _driverCngPercent,
-                Incomes = OperatorRows.Select(r => new PlatformIncome { PlatformName = r.OperatorName, OperatorBill = r.Bill, CashCollected = r.Cash }).ToList(),
-                Expenses = new List<SettlementExpense>()
+                Date               = Date,
+                Driver             = _assignedDriver!,
+                Vehicle            = _selectedVehicle!,
+                ShiftType          = SelectedShift,
+                DriverIncomePercent = _driverIncomePercent,
+                DriverCngPercent   = _driverCngPercent,
+                Incomes            = OperatorRows.Select(r => new PlatformIncome
+                {
+                    PlatformName  = r.OperatorName,
+                    OperatorBill  = r.Bill,
+                    CashCollected = r.Cash
+                }).ToList(),
+                Expenses           = expenses
             };
-            if (_totalCng > 0) request.Expenses.Add(new SettlementExpense { Type = ExpenseType.CNG, Amount = _totalCng });
-            if (_toll > 0) request.Expenses.Add(new SettlementExpense { Type = ExpenseType.Toll, Amount = _toll });
-            if (_parking > 0) request.Expenses.Add(new SettlementExpense { Type = ExpenseType.Parking, Amount = _parking });
-            if (_repair > 0) request.Expenses.Add(new SettlementExpense { Type = ExpenseType.Other, Amount = _repair, Name = "Repair" });
-            if (_miscellaneous > 0) request.Expenses.Add(new SettlementExpense { Type = ExpenseType.Other, Amount = _miscellaneous, Name = "Misc" });
-            return request;
         }
+
 
         private async Task OnSaveAsync()
         {
@@ -435,9 +494,13 @@ namespace DriverLedger.ViewModels
         private async Task SaveNewAsync(Settlement s)
         {
             var existing = await _settlementRepo.GetSettlementsByDateAsync(Date);
-            if (existing.Any(e => e.DriverId == _assignedDriver!.Id && e.VehicleId == _selectedVehicle!.Id))
+            // BUG-3 fix: include ShiftType in duplicate check — a driver can have Day AND Night
+            // settlements on the same date (two separate shifts are both valid).
+            if (existing.Any(e => e.DriverId    == _assignedDriver!.Id
+                               && e.VehicleId   == _selectedVehicle!.Id
+                               && e.ShiftType   == SelectedShift))
             {
-                await _dialog.ShowAlertAsync("Duplicate", "Settlement already exists for this Driver/Vehicle on this date.");
+                await _dialog.ShowAlertAsync("Duplicate", "Settlement already exists for this Driver/Vehicle/Shift on this date.");
                 return;
             }
 
@@ -463,11 +526,13 @@ namespace DriverLedger.ViewModels
             // BUG-3 fix: check for duplicate on the (potentially changed) date,
             // excluding the record being edited.
             var sameDay = await _settlementRepo.GetSettlementsByDateAsync(Date);
-            if (sameDay.Any(e => e.DriverId == _assignedDriver!.Id
-                              && e.VehicleId == _selectedVehicle!.Id
-                              && e.Id        != s.Id))
+            // BUG-3 fix: also check ShiftType when detecting duplicates in edit mode
+            if (sameDay.Any(e => e.DriverId  == _assignedDriver!.Id
+                              && e.VehicleId  == _selectedVehicle!.Id
+                              && e.ShiftType  == SelectedShift
+                              && e.Id         != s.Id))
             {
-                await _dialog.ShowAlertAsync("Duplicate", "Settlement already exists for this Driver/Vehicle on this date.");
+                await _dialog.ShowAlertAsync("Duplicate", "Settlement already exists for this Driver/Vehicle/Shift on this date.");
                 return;
             }
 
@@ -483,7 +548,23 @@ namespace DriverLedger.ViewModels
             }
             else
             {
-                await _settlementRepo.SaveSettlementAsync(s);
+                // C1 fix: the settlement already has Id > 0 (set from _editingSettlement.Id above).
+                // Calling SaveSettlementWithLedgerAsync would INSERT a duplicate row because the
+                // UoW always uses conn.Insert() regardless of the Id field value.
+                // Use UpdateSettlementWithLedgerAsync so the existing row is updated atomically
+                // and the ledger entry is linked correctly.
+                var newEntry = new DriverLedgerEntry
+                {
+                    DriverId        = s.DriverId,
+                    Date            = s.Date,
+                    VehicleId       = s.VehicleId,
+                    ShiftType       = s.ShiftType,
+                    TransactionType = TransactionTypes.Settlement,
+                    Description     = $"Settlement - {s.ShiftType} | Income ₹{s.TotalIncome:N0}",
+                    Debit           = s.NetDriverPayable > 0 ? s.NetDriverPayable : 0m,
+                    Credit          = s.NetDriverPayable < 0 ? Math.Abs(s.NetDriverPayable) : 0m
+                };
+                await _uow.UpdateSettlementWithLedgerAsync(s, newEntry, _assignedDriver!.Id);
             }
 
             await _dialog.ShowAlertAsync("✅ Updated", BuildResultMsg(s));

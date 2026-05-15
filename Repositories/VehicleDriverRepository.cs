@@ -11,16 +11,24 @@ namespace DriverLedger.Repositories
 
         public async Task<List<VehicleDriver>> GetAssignmentsForVehicleAsync(int vehicleId)
         {
-            var query = await _db.QueryAsync<VehicleDriver>();
-            return await query.Where(vd => vd.VehicleId == vehicleId).ToListAsync();
+            // P5-6 fix: use raw connection so idx_vehicledrivers_vehicle (Migration_005)
+            // is used instead of a full async table scan through the QueryAsync proxy.
+            var conn = await _db.GetRawConnectionAsync();
+            return await Task.Run(() =>
+                conn.Table<VehicleDriver>()
+                    .Where(vd => vd.VehicleId == vehicleId)
+                    .ToList());
         }
 
         public async Task<VehicleDriver?> GetAssignmentAsync(int vehicleId, string shiftType)
         {
-            var query = await _db.QueryAsync<VehicleDriver>();
-            return await query
-                .Where(vd => vd.VehicleId == vehicleId && vd.ShiftType == shiftType)
-                .FirstOrDefaultAsync();
+            // P5-6 fix: same pattern — hits idx_vehicledrivers_shift composite index.
+            // Called on every vehicle/shift change in SettlementEntryPage.
+            var conn = await _db.GetRawConnectionAsync();
+            return await Task.Run(() =>
+                conn.Table<VehicleDriver>()
+                    .Where(vd => vd.VehicleId == vehicleId && vd.ShiftType == shiftType)
+                    .FirstOrDefault());
         }
 
         public Task<VehicleDriver?> GetByIdAsync(int id)
@@ -49,4 +57,5 @@ namespace DriverLedger.Repositories
             => _db.DeleteAsync(assignment);
     }
 }
+
 

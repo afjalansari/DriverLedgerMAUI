@@ -1,10 +1,11 @@
 using System.Windows.Input;
+using DriverLedger.Helpers;
 using DriverLedger.Repositories;
 using DriverLedger.Services;
 
 namespace DriverLedger.ViewModels
 {
-    public class LoginViewModel : BaseViewModel
+    public class LoginViewModel : BaseViewModel, IDisposable
     {
         private readonly ICompanyRepository  _companyRepo;
         private readonly AuthService         _authService;
@@ -66,11 +67,11 @@ namespace DriverLedger.ViewModels
         }
         public bool HasLoginError => !string.IsNullOrEmpty(LoginError);
 
-        // ── Brute-force lockout ───────────────────────────────────────────────
+        // ── Brute-force lockout (constants sourced from AppConstants) ─────────────
 
         private int  _failedAttempts    = 0;
-        private const int  MaxAttempts  = 5;
-        private const int  LockoutSecs  = 30;
+        private const int  MaxAttempts  = AppConstants.MaxLoginAttempts;
+        private const int  LockoutSecs  = AppConstants.LoginLockoutSeconds;
         private DateTime   _lockoutUntil = DateTime.MinValue;
         private IDispatcherTimer? _lockoutTimer;
 
@@ -229,6 +230,18 @@ namespace DriverLedger.ViewModels
             };
             LockoutMessage = $"Too many failed attempts. Please wait {LockoutSecs}s before trying again.";
             _lockoutTimer.Start();
+        }
+        // ── IDisposable ───────────────────────────────────────────────────
+        // L1 fix: the _lockoutTimer Tick lambda captures 'this' (via _lockoutUntil,
+        // IsLockedOut, LockoutMessage, LoginCommand). If the user navigates away
+        // before the lockout expires, the timer holds the ViewModel alive and
+        // keeps firing ticks into a dead VM. Stopping it in Dispose() releases
+        // the reference immediately when LoginPage is removed from the nav stack.
+        public void Dispose()
+        {
+            _lockoutTimer?.Stop();
+            _lockoutTimer = null;
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using DriverLedger.Helpers;
+using DriverLedger.Models;
 using DriverLedger.Repositories;
 using DriverLedger.Services;
 
@@ -78,9 +79,12 @@ namespace DriverLedger.ViewModels
 
                 foreach (var day in days)
                 {
-                    // Filter in-memory — convert UTC dates to local for comparison
+                    // M1 fix: s.Date is stored as a plain local date (Kind=Unspecified).
+                    // Calling .ToLocalTime() on Unspecified treats it as UTC and applies the
+                    // local offset — in negative-UTC timezones this shifts the date to the
+                    // previous day. Compare .Date directly instead.
                     var items = allSettlements
-                        .Where(s => s.Date.ToLocalTime().Date == day.Date)
+                        .Where(s => s.Date.Date == day.Date)
                         .ToList();
                     // BUG-FIX: TotalOperatorBill → TotalIncome (normalized model)
                     earnings.Add((float)items.Sum(s => s.TotalIncome));
@@ -88,8 +92,8 @@ namespace DriverLedger.ViewModels
                     fuel.Add((float)items.Sum(s => s.OwnerCngShare));
                     // BUG-FIX: Old profitCalc call used 7 removed fields.
                     // OwnerNetProfit = TotalIncome - DriverShare - OwnerCngShare - TotalOwnerExpenses
-                    owner.Add((float)items.Sum(s =>
-                        s.TotalIncome - s.DriverShare - s.OwnerCngShare - s.TotalOwnerExpenses));
+                    // D6-4: use canonical helper — eliminates the duplicated inline formula.
+                    owner.Add((float)items.Sum(s => CalcOwnerProfit(s)));
                 }
 
                 // Assign to charts
@@ -101,15 +105,14 @@ namespace DriverLedger.ViewModels
                 OwnerChart.Labels    = labels;
 
                 // Summary totals — reuse the already-fetched allSettlements
-                // BUG-K fix: compare .Date to avoid time-of-day boundary issues
+                // M1 fix: same direct .Date comparison (see chart loop comment above).
                 var weekItems = allSettlements
-                    .Where(s => s.Date.ToLocalTime().Date >= today.AddDays(-6)).ToList();
+                    .Where(s => s.Date.Date >= today.AddDays(-6).Date).ToList();
 
                 // BUG-FIX: map to current model properties
                 WeekEarnings     = weekItems.Sum(s => s.TotalIncome);
                 WeekFuel         = weekItems.Sum(s => s.OwnerCngShare);
-                WeekOwner        = weekItems.Sum(s =>
-                    s.TotalIncome - s.DriverShare - s.OwnerCngShare - s.TotalOwnerExpenses);
+                WeekOwner        = weekItems.Sum(s => CalcOwnerProfit(s));
                 // BUG-FIX: DriverNetHaq → NetDriverPayable (stored field, positive = driver earns)
                 WeekDriver       = weekItems.Sum(s => Math.Abs(s.NetDriverPayable));
                 TotalSettlements = weekItems.Count;
@@ -128,6 +131,13 @@ namespace DriverLedger.ViewModels
             }
             finally { IsBusy = false; }
         }
+
+    /// <summary>
+    /// D6-4: Single canonical owner-profit formula.
+    /// OwnerNetProfit = TotalIncome − DriverShare − OwnerCngShare − TotalOwnerExpenses.
+    /// A future formula change only needs to be made in one place.
+    /// </summary>
+    private static decimal CalcOwnerProfit(Settlement s)
+        => s.TotalIncome - s.DriverShare - s.OwnerCngShare - s.TotalOwnerExpenses;
     }
 }
-

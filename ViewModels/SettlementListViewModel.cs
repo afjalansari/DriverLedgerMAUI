@@ -11,8 +11,6 @@ namespace DriverLedger.ViewModels
     public class SettlementListViewModel : BaseViewModel
     {
         private readonly ISettlementRepository   _settlementRepo;
-        private readonly IVehicleRepository      _vehicleRepo;
-        private readonly IDriverRepository       _driverRepo;
         private readonly IDriverLedgerRepository _ledgerRepo;
         private readonly IUnitOfWork             _uow;
         private readonly INavigationService      _nav;
@@ -58,16 +56,12 @@ namespace DriverLedger.ViewModels
 
         public SettlementListViewModel(
             ISettlementRepository   settlementRepo,
-            IVehicleRepository      vehicleRepo,
-            IDriverRepository       driverRepo,
             IDriverLedgerRepository ledgerRepo,
             IUnitOfWork             uow,
             INavigationService      nav,
             IDialogService          dialog)
         {
             _settlementRepo = settlementRepo;
-            _vehicleRepo    = vehicleRepo;
-            _driverRepo     = driverRepo;
             _ledgerRepo     = ledgerRepo;
             _uow            = uow;
             _nav            = nav;
@@ -132,19 +126,17 @@ namespace DriverLedger.ViewModels
             try
             {
                 var settlements = await _settlementRepo.GetAllSettlementsAsync();
-                var vehicles    = await _vehicleRepo.GetAllVehiclesAsync();
-                var drivers     = await _driverRepo.GetAllDriversAsync();
 
-                var vDict = vehicles.ToDictionary(v => v.Id, v => v.VehicleNumber);
-                var dDict = drivers.ToDictionary(d => d.Id, d => d.DriverName);
-
+                // H3 fix: Settlement already stores VehicleNumberSnapshot and DriverNameSnapshot
+                // (written by SettlementCalculator at creation time). Using them eliminates
+                // 2 full-table reads (GetAllVehiclesAsync + GetAllDriversAsync) on every refresh.
                 _allRecords = settlements
                     .OrderByDescending(s => s.Date)
                     .Select(s => new SettlementRecord
                     {
                         Settlement    = s,
-                        VehicleNumber = vDict.TryGetValue(s.VehicleId, out var vn) ? vn : "—",
-                        DriverName    = dDict.TryGetValue(s.DriverId, out var dn) ? dn : "—"
+                        VehicleNumber = string.IsNullOrEmpty(s.VehicleNumberSnapshot) ? "—" : s.VehicleNumberSnapshot,
+                        DriverName    = string.IsNullOrEmpty(s.DriverNameSnapshot)    ? "—" : s.DriverNameSnapshot
                     }).ToList();
 
                 ApplyFilter(); // totals are computed inside ApplyFilter (BUG-11 fix)

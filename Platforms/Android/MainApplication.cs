@@ -1,5 +1,6 @@
-using Android.App;
+ï»¿using Android.App;
 using Android.Runtime;
+using DriverLedger.Services.Diagnostics;
 
 namespace DriverLedger
 {
@@ -9,21 +10,24 @@ namespace DriverLedger
         public MainApplication(IntPtr handle, JniHandleOwnership ownership)
             : base(handle, ownership)
         {
-            // Global unhandled exception handlers — prevent silent crashes in Release
-            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+            // Phase 4: Global unhandled exception hooks wired to CrashLogService.
+            // CrashLogService.Instance is a static singleton initialised before DI
+            // is built, so it is safe to call here. It NEVER throws internally.
+            AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             {
                 var ex = args.ExceptionObject as Exception;
-                System.Diagnostics.Debug.WriteLine($"[DriverLedger] FATAL UnhandledException: {ex?.Message}\n{ex?.StackTrace}");
+                _ = CrashLogService.Instance.LogCrashAsync(ex, "AppDomain.UnhandledException");
+                System.Diagnostics.Debug.WriteLine($"[DriverLedger] FATAL: {ex?.Message}");
             };
 
-            TaskScheduler.UnobservedTaskException += (sender, args) =>
+            TaskScheduler.UnobservedTaskException += (_, args) =>
             {
-                System.Diagnostics.Debug.WriteLine($"[DriverLedger] UnobservedTaskException: {args.Exception?.Message}");
-                args.SetObserved(); // Prevent crash
+                _ = CrashLogService.Instance.LogCrashAsync(args.Exception, "TaskScheduler.UnobservedTaskException");
+                System.Diagnostics.Debug.WriteLine($"[DriverLedger] UnobservedTask: {args.Exception?.Message}");
+                args.SetObserved();
             };
         }
 
         protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
     }
 }
-

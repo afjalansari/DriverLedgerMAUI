@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#512BD4</color>
-    <color name="colorPrimaryDark">#2B0B98</color>
-    <color name="colorAccent">#2B0B98</color>
+    <!--
+        Brand colors aligned with csproj Color="#1565C0".
+        colorPrimary      : used by ActionBar / status bar on API 21-22 devices.
+        colorPrimaryDark  : status bar tint on API 21+ (pre-Material3 devices).
+        colorAccent       : legacy accent for older AppCompat widgets.
+        maui_splash_color : read by the generated maui_splash.xml background layer.
+                            Must match <MauiSplashScreen Color="..."> in .csproj.
+        FIX: was #512BD4 (default MAUI purple) — caused a purple status-bar flash
+             on startup before MAUI's theme switch completed.
+    -->
+    <color name="colorPrimary">#1565C0</color>
+    <color name="colorPrimaryDark">#0D47A1</color>
+    <color name="colorAccent">#1E88E5</color>
+    <color name="maui_splash_color">#1565C0</color>
 </resources>

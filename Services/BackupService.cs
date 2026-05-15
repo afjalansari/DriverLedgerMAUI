@@ -23,8 +23,8 @@ namespace DriverLedger.Services
         private const string BackupExt    = ".db";
         private const string LastBackupKey = "LastBackupTimestamp";
 
-        // 24-hour auto-backup threshold
-        private static readonly TimeSpan AutoBackupInterval = TimeSpan.FromHours(24);
+        // D6-5: delegate to AppConstants — single source of truth, no silent drift.
+        private static TimeSpan AutoBackupInterval => AppConstants.AutoBackupInterval;
 
         // ── Dependencies ─────────────────────────────────────────────────────
         private readonly DatabaseService _db;
@@ -54,13 +54,15 @@ namespace DriverLedger.Services
             string backupName = $"{BackupPrefix}{timestamp}{BackupExt}";
             string backupPath = Path.Combine(backupDir, backupName);
 
+            // FIX-0D: await the async method BEFORE Task.Run to eliminate sync-over-async.
+            var conn = await _db.GetRawConnectionAsync();
+
             // Force a WAL checkpoint so all changes are in the main DB file
             // before we copy. This is safe even if WAL mode is not active.
             await Task.Run(() =>
             {
                 try
                 {
-                    var conn = _db.GetRawConnectionAsync().GetAwaiter().GetResult();
                     conn.Execute("PRAGMA wal_checkpoint(TRUNCATE);");
                 }
                 catch (Exception ex)
@@ -69,6 +71,11 @@ namespace DriverLedger.Services
                         $"[BackupService] WAL checkpoint warning (non-fatal): {ex.Message}");
                 }
             });
+
+            // L2 fix: close the async connection AFTER the checkpoint and BEFORE copying.
+            // This ensures no concurrent write can re-dirty the WAL between checkpoint and
+            // copy. The connection is re-opened lazily on the next DB operation.
+            await _db.CloseAsync();
 
             // BUG-12 note: the TRUNCATE checkpoint above flushes all WAL pages into the main DB
             // file and then truncates the WAL to zero length. After a successful checkpoint, the

@@ -79,11 +79,8 @@ namespace DriverLedger.Services
 
             // ── Owner Profit ──────────────────────────────────────────────────
             var ownerExpenses = today.Sum(s => s.TotalOwnerExpenses);
-            
-            // Formula: IncomeShare - OwnerCngShare - TotalOwnerExpenses
-            // Actually, we can just sum the calculated profit if we had it, 
-            // but we'll recalculate from the atomic parts stored in Settlement.
-            var ownerProfit   = today.Sum(s => (s.TotalIncome - s.DriverShare) - s.OwnerCngShare - s.TotalOwnerExpenses);
+            // D6-4: use canonical helper — same formula as GetMonthlySummaryAsync.
+            var ownerProfit   = today.Sum(s => CalcOwnerProfit(s));
 
             // ── Vehicle Performance ───────────────────────────────────────────
             string topVehicle = "—", bottomVehicle = "—";
@@ -132,18 +129,20 @@ namespace DriverLedger.Services
             }
 
             // ── Recent Settlements (last 5) ───────────────────────────────────
+            // FIX-0E: Project directly to RecentSettlementItem (the richer DTO used by the
+            // ViewModel/XAML). Removes the intermediate RecentSettlementRow class entirely.
             var recent = recent5
-                .Select(s => new RecentSettlementRow
+                .Select(s => new RecentSettlementItem
                 {
-                    Id              = s.Id,
-                    DateDisplay     = s.Date.ToLocalTime().ToString("dd MMM"),
-                    VehicleNumber   = vehicles.FirstOrDefault(v => v.Id == s.VehicleId)?.VehicleNumber ?? "—",
-                    DriverName      = drivers.FirstOrDefault(d => d.Id == s.DriverId)?.DriverName ?? "—",
-                    TotalIncome     = s.TotalIncome,
-                    DriverShare     = s.DriverShare,
+                    Id                 = s.Id,
+                    DateDisplay        = s.Date.ToLocalTime().ToString("dd MMM"),
+                    VehicleNumber      = vehicles.FirstOrDefault(v => v.Id == s.VehicleId)?.VehicleNumber ?? "—",
+                    DriverName         = drivers.FirstOrDefault(d => d.Id == s.DriverId)?.DriverName ?? "—",
+                    TotalIncome        = s.TotalIncome,
+                    DriverShare        = s.DriverShare,
                     TotalCashCollected = s.TotalCashCollected,
                     TotalOwnerExpenses = s.TotalOwnerExpenses,
-                    NetDriverPayable = s.NetDriverPayable
+                    NetDriverPayable   = s.NetDriverPayable
                 })
                 .ToList();
 
@@ -186,8 +185,13 @@ namespace DriverLedger.Services
             {
                 Label          = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Unspecified).ToString("MMMM yyyy"),
                 OperatorBill   = items.Sum(s => s.TotalIncome),
-                TotalCNG       = items.Sum(s => s.OwnerCngShare),
-                OwnerProfit    = items.Sum(s => (s.TotalIncome - s.DriverShare) - s.OwnerCngShare - s.TotalOwnerExpenses),
+                // D6-2 fix: was summing OwnerCngShare (only the owner's portion of CNG).
+                // GetSettlementsByMonthAsync → LoadCollectionsAsync always populates ExpenseItems,
+                // so we can sum the real fleet CNG cost here.
+                TotalCNG       = items.Sum(s => s.ExpenseItems
+                                     .Where(e => e.Type == ExpenseType.CNG)
+                                     .Sum(e => e.Amount)),
+                OwnerProfit    = items.Sum(s => CalcOwnerProfit(s)),
                 DriverEarnings = items.Sum(s => s.DriverShare)
             };
         }
@@ -202,10 +206,21 @@ namespace DriverLedger.Services
             {
                 TotalOutstandingBalance = balances.Values.Sum(),
                 DriversOweOwnerCount    = oweOwner.Count,
-                DriversOweOwnerAmount   = oweOwner.Sum(kv => kv.Value),
+                // C3 fix: oweOwner values are all < 0 — sum is negative; take Abs for display.
+                DriversOweOwnerAmount   = Math.Abs(oweOwner.Sum(kv => kv.Value)),
                 OwnerOwesDriverCount    = ownerOwes.Count,
                 OwnerOwesDriverAmount   = Math.Abs(ownerOwes.Sum(kv => kv.Value))
             };
         }
+
+    // ── Private Helpers ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// D6-4: Single canonical owner-profit formula shared across GetDailySummaryAsync
+    /// and GetMonthlySummaryAsync.
+    /// OwnerNetProfit = TotalIncome − DriverShare − OwnerCngShare − TotalOwnerExpenses.
+    /// </summary>
+    private static decimal CalcOwnerProfit(Settlement s)
+        => s.TotalIncome - s.DriverShare - s.OwnerCngShare - s.TotalOwnerExpenses;
     }
 }

@@ -139,7 +139,9 @@ namespace DriverLedger.ViewModels
                 }
 
                 ApplyFilter();
-                RecalculateTotals();
+                // M2 fix: RecalculateTotals() is now called inside ApplyFilter()
+                // so totals update whenever the visible list changes (search or load).
+                // Removed the explicit call here to avoid double-computation on load.
             }
             catch (Exception ex)
             {
@@ -182,6 +184,10 @@ namespace DriverLedger.ViewModels
 
                 await _ledgerRepo.AddLedgerEntryAsync(entry);
                 await _dialog.ShowAlertAsync("✅ Done", $"{s.DriverName} ka balance clear ho gaya!");
+                // L2 fix: reload ONLY on success — avoids a redundant DB round-trip
+                // after the error dialog when AddLedgerEntryAsync throws.
+                IsBusy = false;
+                await LoadAsync();
             }
             catch (Exception ex)
             {
@@ -190,9 +196,10 @@ namespace DriverLedger.ViewModels
             }
             finally
             {
-                // BUG-D fix: always reset IsBusy in finally, then reload (was premature reset before dialog)
+                // L2 fix: reset IsBusy in finally (covers both success and failure paths).
+                // LoadAsync is no longer called here — it was causing a redundant reload
+                // even when the clear operation failed (data had not changed).
                 IsBusy = false;
-                await LoadAsync();
             }
         }
 
@@ -207,6 +214,10 @@ namespace DriverLedger.ViewModels
 
             DriverSummaries.Clear();
             foreach (var s in filtered) DriverSummaries.Add(s);
+
+            // M2 fix: always recompute totals here so they stay in sync with the visible
+            // list whether triggered by LoadAsync or by a SearchText change.
+            RecalculateTotals();
         }
 
         private void RecalculateTotals()

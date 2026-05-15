@@ -30,9 +30,10 @@ namespace DriverLedger.ViewModels
         public static string AppVersion =>
             $"v{AppInfo.VersionString} (build {AppInfo.BuildString})";
 
-        public ICommand BackupCommand  { get; }
-        public ICommand RestoreCommand { get; }
-        public ICommand LogoutCommand  { get; }
+        public ICommand BackupCommand      { get; }
+        public ICommand RestoreCommand     { get; }
+        public ICommand LogoutCommand      { get; }
+        public ICommand DiagnosticsCommand { get; }
 
         // IDE: commands extracted into private methods to reduce constructor cognitive complexity
         public SettingsViewModel(
@@ -51,9 +52,10 @@ namespace DriverLedger.ViewModels
 
             _isDarkMode = themeService.IsDarkMode;
 
-            BackupCommand  = new Command(async () => await OnBackupAsync());
-            RestoreCommand = new Command(async () => await OnRestoreAsync());
-            LogoutCommand  = new Command(async () => await OnLogoutAsync());
+            BackupCommand      = new Command(async () => await OnBackupAsync());
+            RestoreCommand     = new Command(async () => await OnRestoreAsync());
+            LogoutCommand      = new Command(async () => await OnLogoutAsync());
+            DiagnosticsCommand = new Command(async () => await _nav.GoToAsync(nameof(Views.DiagnosticsPage)));
         }
 
         // ── Command Handlers ─────────────────────────────────────────────────

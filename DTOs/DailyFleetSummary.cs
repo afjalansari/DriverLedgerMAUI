@@ -46,23 +46,9 @@ namespace DriverLedger.DTOs
         public int     MostTripsCount     { get; init; }
 
         // ── Recent Settlements ────────────────────────────────────────────────
-        public IReadOnlyList<RecentSettlementRow> RecentSettlements { get; init; } = [];
-    }
-
-    /// <summary>A single row in the "Recent Settlements" list.</summary>
-    public class RecentSettlementRow
-    {
-        public int     Id              { get; init; }
-        public string  DateDisplay     { get; init; } = string.Empty;
-        public string  VehicleNumber   { get; init; } = "—";
-        public string  DriverName      { get; init; } = "—";
-        public decimal TotalIncome         { get; init; }
-        public decimal DriverShare          { get; init; }
-        public decimal TotalCashCollected   { get; init; }
-        public decimal TotalOwnerExpenses   { get; init; }
-        public decimal NetDriverPayable     { get; init; }
-
-        public bool IsOwnerPaying  => NetDriverPayable > 0;
-        public bool IsDriverPaying => NetDriverPayable < 0;
+        // FIX-0E: Use RecentSettlementItem directly (richer DTO, already in DTOs/).
+        // Eliminates the duplicate RecentSettlementRow class and the manual re-mapping
+        // loop in DashboardViewModel.LoadAsync.
+        public IReadOnlyList<RecentSettlementItem> RecentSettlements { get; init; } = [];
     }
 }

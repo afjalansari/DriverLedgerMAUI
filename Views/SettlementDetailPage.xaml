@@ -151,6 +151,52 @@
                     BorderColor="#EF5350" BorderWidth="1"
                     CornerRadius="14" HeightRequest="48" Margin="0,4,0,0"/>
 
+            <!-- ④ Audit History Drawer (Phase 7) -->
+            <Button Text="{Binding HistoryToggleLabel}"
+                    Command="{Binding ShowHistoryCommand}"
+                    BackgroundColor="Transparent" TextColor="#566A7F"
+                    BorderColor="#1A3560" BorderWidth="1"
+                    CornerRadius="14" HeightRequest="44" Margin="0,4,0,0"
+                    FontSize="13"/>
+
+            <VerticalStackLayout IsVisible="{Binding IsHistoryVisible}" Spacing="8">
+                <Label Text="EDIT HISTORY" TextColor="#566A7F" FontSize="11"
+                       FontAttributes="Bold" Margin="4,4,0,0"/>
+
+                <CollectionView ItemsSource="{Binding AuditHistory}" SelectionMode="None">
+                    <CollectionView.EmptyView>
+                        <Label Text="No history recorded yet — future edits will appear here."
+                               TextColor="#3A5570" FontSize="12" Margin="4,4"/>
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:AuditLogDisplay">
+                            <Border BackgroundColor="#0A1220" StrokeShape="RoundRectangle 10"
+                                    Stroke="#161F30" Padding="12,10" Margin="0,0,0,6">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                    <Label Grid.Column="0" Text="{Binding ActionIcon}"
+                                           FontSize="16" VerticalOptions="Start" Margin="0,2,0,0"/>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding ActionLabel}"
+                                                   TextColor="{Binding ActionColor}"
+                                                   FontSize="12" FontAttributes="Bold"/>
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding DateDisplay}"
+                                                   TextColor="#566A7F" FontSize="10"
+                                                   VerticalOptions="Center"/>
+                                        </Grid>
+                                        <Label Text="{Binding ChangeSummary}"
+                                               TextColor="#78909C" FontSize="11"
+                                               LineBreakMode="WordWrap"/>
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

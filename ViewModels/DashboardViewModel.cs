@@ -213,6 +213,9 @@ namespace DriverLedger.ViewModels
         public ICommand AnalyticsCommand     { get; }
         public ICommand SettingsCommand      { get; }
         public ICommand ExportSummaryCommand { get; }
+        // Phase 7 — Activity Feed
+        public ICommand ActivityFeedCommand  { get; }
+        public ICommand FlyoutCommand        { get; }
 
         // ═══════════════════════════════════════════════════════════════════════
         //  Constructor
@@ -238,6 +241,8 @@ namespace DriverLedger.ViewModels
             AnalyticsCommand     = new Command(async () => await _nav.GoToAsync(nameof(AnalyticsPage)));
             SettingsCommand      = new Command(async () => await _nav.GoToAsync(nameof(SettingsPage)));
             ExportSummaryCommand = new Command(async () => await OnExportSummaryAsync());
+            ActivityFeedCommand  = new Command(async () => await _nav.GoToAsync(nameof(SettlementHistoryPage)));
+            FlyoutCommand        = new Command(() => Shell.Current.FlyoutIsPresented = true);
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -256,16 +261,18 @@ namespace DriverLedger.ViewModels
             IsBusy = true;
             try
             {
+                // M4 fix: pre-format all values to string so the CSV Value column is
+                // uniform (no mixed decimal/int/string types) and human-readable.
                 var exportData = new List<object>
                 {
-                    new { Metric = "Date", Value = DateLabel },
-                    new { Metric = "Total Bill", Value = TodayOperatorBill },
-                    new { Metric = "Cash Collected", Value = TodayCashCollected },
-                    new { Metric = "Online Amount", Value = TodayOnlineAmount },
-                    new { Metric = "Owner CNG Share", Value = TodayOwnerCNGShare },
-                    new { Metric = "Driver Net Haq", Value = TodayDriverNetHaq },
-                    new { Metric = "Owner Net Profit", Value = TodayOwnerNetProfit },
-                    new { Metric = "Pending Settlements", Value = PendingSettlementsCount }
+                    new { Metric = "Date",                Value = DateLabel },
+                    new { Metric = "Total Bill",          Value = $"₹{TodayOperatorBill:N0}" },
+                    new { Metric = "Cash Collected",      Value = $"₹{TodayCashCollected:N0}" },
+                    new { Metric = "Online Amount",       Value = $"₹{TodayOnlineAmount:N0}" },
+                    new { Metric = "Owner CNG Share",     Value = $"₹{TodayOwnerCNGShare:N0}" },
+                    new { Metric = "Driver Net Haq",      Value = $"₹{TodayDriverNetHaq:N0}" },
+                    new { Metric = "Owner Net Profit",    Value = $"₹{TodayOwnerNetProfit:N0}" },
+                    new { Metric = "Pending Settlements", Value = PendingSettlementsCount.ToString() }
                 };
 
                 string path = await _export.ExportToCsvAsync(exportData, $"Daily_Summary_{DateTime.Now:yyyyMMdd}");
@@ -302,21 +309,10 @@ namespace DriverLedger.ViewModels
                 UpdatePropertiesFromMonth(month);
 
                 RecentSettlements.Clear();
-                foreach (var s in summary.RecentSettlements)
-                {
-                    RecentSettlements.Add(new RecentSettlementItem
-                    {
-                        Id = s.Id,
-                        DateDisplay = s.DateDisplay,
-                        VehicleNumber = s.VehicleNumber,
-                        DriverName = s.DriverName,
-                        TotalIncome = s.TotalIncome,
-                        DriverShare = s.DriverShare,
-                        TotalCashCollected = s.TotalCashCollected,
-                        TotalOwnerExpenses = s.TotalOwnerExpenses,
-                        NetDriverPayable = s.NetDriverPayable
-                    });
-                }
+                // FIX-0E: DashboardSummaryService now returns RecentSettlementItem directly.
+                // No re-mapping needed — Add each item straight to the observable collection.
+                foreach (var item in summary.RecentSettlements)
+                    RecentSettlements.Add(item);
             }
             catch (Exception ex)
             {

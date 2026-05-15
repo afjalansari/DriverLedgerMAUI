@@ -62,14 +62,16 @@ namespace DriverLedger.Repositories
             var end = start.AddDays(1);
 
             var query = await _db.QueryAsync<Settlement>();
-            var duplicate = await query.FirstOrDefaultAsync(s => 
-                s.Date >= start && s.Date < end && 
-                s.DriverId == settlement.DriverId && 
+            var duplicate = await query.FirstOrDefaultAsync(s =>
+                s.Date >= start && s.Date < end &&
+                s.DriverId  == settlement.DriverId  &&
                 s.VehicleId == settlement.VehicleId &&
-                s.Id != settlement.Id);
+                // H3 fix: include ShiftType so Day+Night on the same date are both valid.
+                s.ShiftType == settlement.ShiftType &&
+                s.Id        != settlement.Id);
 
             if (duplicate != null)
-                throw new InvalidOperationException($"A settlement already exists for this Driver and Vehicle on {settlement.Date:yyyy-MM-dd}");
+                throw new InvalidOperationException($"A settlement already exists for this Driver and Vehicle on {settlement.Date:yyyy-MM-dd} ({settlement.ShiftType} shift)");
 
             var conn = await _db.GetRawConnectionAsync();
             int result = 0;
@@ -88,6 +90,10 @@ namespace DriverLedger.Repositories
                     }
                     else
                     {
+                        // Phase 3 — increment revision + re-stamp hash on every edit
+                        new Services.SettlementIntegrityService()
+                            .StampRevision(settlement, settlement.CalculatorVersion);
+
                         conn.Update(settlement);
                         result = settlement.Id;
 
@@ -114,12 +120,17 @@ namespace DriverLedger.Repositories
 
         public async Task<int> DeleteSettlementAsync(Settlement settlement)
         {
+            // P5-5 fix: wrap RunInTransaction in Task.Run — avoids blocking the
+            // thread-pool thread (same BUG-4 pattern already fixed in SaveSettlementAsync).
             var conn = await _db.GetRawConnectionAsync();
-            conn.RunInTransaction(() =>
+            await Task.Run(() =>
             {
-                conn.Execute("DELETE FROM PlatformIncomes WHERE SettlementId = ?", settlement.Id);
-                conn.Execute("DELETE FROM SettlementExpenses WHERE SettlementId = ?", settlement.Id);
-                conn.Delete(settlement);
+                conn.RunInTransaction(() =>
+                {
+                    conn.Execute("DELETE FROM PlatformIncomes WHERE SettlementId = ?", settlement.Id);
+                    conn.Execute("DELETE FROM SettlementExpenses WHERE SettlementId = ?", settlement.Id);
+                    conn.Delete(settlement);
+                });
             });
             return 1;
         }

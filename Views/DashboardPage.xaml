@@ -97,7 +97,7 @@
                         <!-- Hamburger -->
                         <Label Grid.Row="0" Grid.Column="0" Text="☰" FontSize="22" TextColor="{StaticResource White}" VerticalOptions="Center" Margin="0,0,14,0">
                             <Label.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding SettingsCommand}"/>
+                                <TapGestureRecognizer Command="{Binding FlyoutCommand}"/>
                             </Label.GestureRecognizers>
                         </Label>
 
